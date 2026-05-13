@@ -9,6 +9,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth, Role } from "@/lib/rbac";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "next-themes";
 
 export const getNavigation = (t: (key: string) => string) => [
   { name: t('nav.dashboard'), href: "/", icon: BarChart3 },
@@ -88,6 +89,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const { theme } = useTheme(); // Récupération du thème actuel
 
   const navigation = getNavigation(t);
   const filteredNavigation = navigation.filter((item) => {
@@ -96,17 +98,21 @@ export function Sidebar() {
     return hasAccess;
   });
 
+  // Déterminer le logo à afficher selon le thème
+  // Si thème sombre -> logo_s.png, si thème clair -> logo_n.png
+  const logoSrc = theme === 'dark' ? "/logo_s.png" : "/logo_n.png";
+
   return (
     <div className="hidden md:flex min-h-screen w-64 flex-col bg-background border-r">
       <div className="h-16 border-b flex items-center">
         <div className="flex items-center gap-3 pl-4 group w-full">
           <img 
-            src="/logo_s.png" 
+            src={logoSrc}
             alt="Simply Hotel Logo" 
             className="h-12 w-12 object-contain rounded-lg transition-transform group-hover:scale-110"
           />
           <div className="flex items-center justify-between w-full pr-4">
-            <h1 className="text-lg font-bold text-foreground">Simply</h1>
+            <h1 className="text-lg font-bold text-foreground">Hotel de l'Avenue</h1>
           </div>
         </div>
       </div>
@@ -149,7 +155,8 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto p-4 border-t space-y-2">
-        <Button          variant="ghost"
+        <Button          
+          variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
           onClick={() => navigate("/notifications")}
         >
