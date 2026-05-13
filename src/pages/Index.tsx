@@ -120,7 +120,7 @@ const Index = () => {
 
   const prepareExportData = () => ({
     metadata: {
-      hotelName: "Simply Hotel",
+      hotelName: "Hôtel de l'Avenue<",
       exportDate: new Date().toLocaleString("fr-FR"),
       periode: today,
       generatedBy: (user as any)?.name || (user as any)?.email || "Utilisateur",
@@ -137,7 +137,7 @@ const Index = () => {
 
   const exportToCSV = (data: any) => {
     let csv = "\uFEFF";
-    csv += `DASHBOARD - SIMPLY HOTEL\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`;
+    csv += `DASHBOARD - Hôtel de l'Avenue\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`;
     csv += "Indicator,Value\n";
     csv += `${t('dashboard.presentGuests')},${data.statistiques.presentGuests}\n`;
     csv += `${t('dashboard.dailyRevenue')},${data.statistiques.revenueTotal}\n`;
@@ -167,7 +167,7 @@ const Index = () => {
   };
 
   const exportToTXT = (data: any) => {
-    const txt = `DASHBOARD - SIMPLY HOTEL\n${"=".repeat(40)}\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`
+    const txt = `DASHBOARD - Hôtel de l'Avenue\n${"=".repeat(40)}\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`
       + `${t('dashboard.presentGuests')}: ${data.statistiques.presentGuests}\n`
       + `${t('dashboard.dailyRevenue')}: ${data.statistiques.revenueTotalFormatted}\n`
       + `${t('dashboard.occupancyRate')}: ${data.statistiques.occupancyRate}%\n`

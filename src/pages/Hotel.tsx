@@ -140,7 +140,7 @@ const Hotel = () => {
 
     return {
       metadata: {
-        hotelName: "Simply Hotel",
+        hotelName: "Hôtel de l'Avenue",
         exportDate: new Date().toLocaleString('fr-FR'),
         periode: aujourdhui,
         exportPar: user?.name || user?.email || "Utilisateur",
@@ -164,7 +164,7 @@ const Hotel = () => {
 
   const exportToCSV = (data: any) => {
     let csvContent = "\uFEFF";
-    csvContent += `HOTEL MANAGEMENT REPORT - SIMPLY HOTEL\n`;
+    csvContent += `HOTEL MANAGEMENT REPORT - Hôtel de l'Avenue\n`;
     csvContent += `${t('common.date')}: ${data.metadata.periode}\n`;
     csvContent += `${t('export.title')}: ${data.metadata.exportDate}\n`;
     csvContent += `${t('common.user')}: ${data.metadata.exportPar}\n`;
@@ -191,7 +191,7 @@ const Hotel = () => {
     const workbook = XLSX.utils.book_new();
 
     const syntheseData = [
-      ["HOTEL MANAGEMENT REPORT - SIMPLY HOTEL", ""],
+      ["HOTEL MANAGEMENT REPORT - Hôtel de l'Avenue", ""],
       [t('common.date'), data.metadata.periode],
       [t('export.title'), data.metadata.exportDate],
       [t('common.user'), data.metadata.exportPar],
@@ -220,7 +220,7 @@ const Hotel = () => {
 
   const exportToTXT = (data: any) => {
     const textContent = `
-HOTEL MANAGEMENT REPORT - SIMPLY HOTEL
+HOTEL MANAGEMENT REPORT - Hôtel de l'Avenue
 ${"=".repeat(50)}
 
 ${t('common.date')}: ${data.metadata.periode}
@@ -250,7 +250,7 @@ ${index + 1}. ${t('hotel.room')} ${chambre.numero}
 
   const exportToJSON = (data: any) => {
     const jsonData = {
-      hotel: "Simply Hotel",
+      hotel: "Hôtel de l'Avenue",
       exportDate: new Date().toISOString(),
       period: data.metadata.periode,
       exportedBy: data.metadata.exportPar,

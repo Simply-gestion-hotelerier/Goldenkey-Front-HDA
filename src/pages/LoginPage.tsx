@@ -264,7 +264,7 @@ const LoginPage: React.FC = () => {
               <div className="relative group">
                 <img
                   src="/logo_s.png"
-                  alt="Simply Hotel Logo"
+                  alt="Hôtel de l'Avenue< Logo"
                   className="w-24 h-24 object-contain drop-shadow-2xl filter brightness-110 contrast-125 saturate-150 dark:brightness-110 dark:contrast-125 dark:saturate-150 transition-all duration-700 group-hover:brightness-125 group-hover:contrast-150 group-hover:saturate-200 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 via-transparent to-slate-400/20 dark:from-amber-400/30 dark:to-blue-400/30 rounded-full blur-xl animate-pulse mix-blend-overlay"></div>
@@ -274,7 +274,7 @@ const LoginPage: React.FC = () => {
 
             <div className="relative">
               <h1 className="text-2xl font-bold bg-gradient-to-br from-slate-200 via-white to-slate-200 dark:from-blue-200 dark:via-white dark:to-blue-200 bg-clip-text text-transparent mb-2 tracking-tight">
-                Simply
+          Hôtel de l'Avenue
               </h1>
               <div className="w-16 h-0.5 bg-gradient-to-r from-slate-400 to-slate-300 dark:from-blue-400 dark:to-blue-300 mx-auto mb-2 rounded-full shadow-sm"></div>
               <p className="text-slate-300/90 dark:text-blue-200/90 text-xs font-light tracking-wide">
@@ -405,7 +405,7 @@ const LoginPage: React.FC = () => {
 
         <div className="mt-6 text-center">
           <div className="flex items-center justify-center space-x-4 text-slate-500/70 dark:text-blue-400/70 text-xs">
-            <span>© {new Date().getFullYear()} Simply</span>
+            <span>© {new Date().getFullYear()} Hôtel de l'Avenue</span>
             <div className="w-1 h-1 bg-slate-500/60 dark:bg-blue-400/60 rounded-full"></div>
             <span>v2.4.1</span>
           </div>

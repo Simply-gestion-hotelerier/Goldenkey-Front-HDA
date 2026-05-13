@@ -152,12 +152,12 @@ const Pub = () => {
       caSoiree: stats.dailyTotal,
       impayes: stats.unpaidTotal,
       dateExport: new Date().toLocaleString('fr-FR'),
-      hotelName: "Simply Hotel - Pub/Bar"
+      hotelName: "Hôtel de l'Avenue- Pub/Bar"
     };
 
     return {
       metadata: {
-        hotelName: "Simply Hotel - Pub/Bar",
+        hotelName: "Hôtel de l'Avenue- Pub/Bar",
         exportDate: new Date().toLocaleString('fr-FR'),
         periode: aujourdhui,
         totalTabs: tabs.length
@@ -180,7 +180,7 @@ const Pub = () => {
     let csvContent = "\uFEFF"; // BOM UTF-8
     
     // En-tête du rapport
-    csvContent += "RAPPORT PUB/BAR - SIMPLY HOTEL\n";
+    csvContent += "RAPPORT PUB/BAR - Hôtel de l'Avenue\n";
     csvContent += `Période: ${data.metadata.periode}\n`;
     csvContent += `Exporté le: ${data.metadata.exportDate}\n`;
     csvContent += `Total tabs: ${data.metadata.totalTabs}\n\n`;
@@ -223,7 +223,7 @@ const Pub = () => {
     
     // Feuille de synthèse
     const syntheseData = [
-      ["RAPPORT PUB/BAR - SIMPLY HOTEL", ""],
+      ["RAPPORT PUB/BAR - Hôtel de l'Avenue", ""],
       ["Période", data.metadata.periode],
       ["Exporté le", data.metadata.exportDate],
       ["Total tabs", data.metadata.totalTabs],
@@ -282,7 +282,7 @@ const Pub = () => {
   // Export TXT amélioré
   const exportToTXT = (data: any) => {
     const textContent = `
-RAPPORT PUB/BAR - SIMPLY HOTEL
+RAPPORT PUB/BAR - Hôtel de l'Avenue
 ===============================
 
 INFORMATIONS GÉNÉRALES
@@ -315,7 +315,7 @@ ${index + 1}. Tab #${tab.id}
 `).join('\n')}
 
 ---
-Rapport généré automatiquement par Simply Hotel
+Rapport généré automatiquement par Hôtel de l'Avenue<
 Système de gestion hôtelière
     `.trim();
 
@@ -326,7 +326,7 @@ Système de gestion hôtelière
   // Export JSON amélioré
   const exportToJSON = (data: any) => {
     const jsonData = {
-      etablissement: "Simply Hotel - Pub/Bar",
+      etablissement: "Hôtel de l'Avenue - Pub/Bar",
       dateExport: new Date().toISOString(),
       periode: data.metadata.periode,
       totalTabs: data.metadata.totalTabs,

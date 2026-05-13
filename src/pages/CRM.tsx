@@ -156,7 +156,7 @@ const CRM = () => {
 
     return {
       metadata: {
-        hotelName: "Simply Hotel - CRM",
+        hotelName: "Hôtel de l'Avenue<- CRM",
         exportDate: new Date().toLocaleString('fr-FR'),
         periode: aujourdhui,
         totalClients: filteredCustomers.length
@@ -168,7 +168,7 @@ const CRM = () => {
 
   const exportToCSV = (data: any) => {
     let csvContent = "\uFEFF";
-    csvContent += `CRM REPORT - SIMPLY HOTEL\n`;
+    csvContent += `CRM REPORT - Hôtel de l'Avenue\n`;
     csvContent += `${t('common.date')}: ${data.metadata.periode}\n`;
     csvContent += `${t('export.title')}: ${data.metadata.exportDate}\n`;
     csvContent += `${t('crm.totalCustomers')}: ${data.metadata.totalClients}\n\n`;
@@ -193,7 +193,7 @@ const CRM = () => {
     const workbook = XLSX.utils.book_new();
     
     const syntheseData = [
-      ["CRM REPORT - SIMPLY HOTEL", ""],
+      ["CRM REPORT - Hôtel de l'Avenue", ""],
       [t('common.date'), data.metadata.periode],
       [t('export.title'), data.metadata.exportDate],
       [t('crm.totalCustomers'), data.metadata.totalClients],
@@ -219,7 +219,7 @@ const CRM = () => {
 
   const exportToTXT = (data: any) => {
     const textContent = `
-CRM REPORT - SIMPLY HOTEL
+CRM REPORT - Hôtel de l'Avenue
 ${"=".repeat(50)}
 
 ${t('common.date')}: ${data.metadata.periode}
@@ -252,7 +252,7 @@ ${index + 1}. ${client.nomComplet}
 
   const exportToJSON = (data: any) => {
     const jsonData = {
-      hotel: "Simply Hotel",
+      hotel: "Hôtel de l'Avenue",
       service: "CRM",
       exportDate: new Date().toISOString(),
       period: data.metadata.periode,

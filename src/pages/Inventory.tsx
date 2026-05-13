@@ -274,7 +274,7 @@ export default function Inventory() {
 
     return {
       metadata: {
-        hotelName: "Simply Hotel - " + t('inventory.title'),
+        hotelName: "Hôtel de l'Avenue- " + t('inventory.title'),
         exportDate: new Date().toLocaleString('fr-FR'),
         periode: aujourdhui,
         totalStocks: sortedStocksByStore.length
@@ -385,7 +385,7 @@ ${t('inventory.reportGenerated')}
 
   const exportToJSON = (data: any) => {
     const jsonData = {
-      hotel: "Simply Hotel",
+      hotel: "Hôtel de l'Avenue",
       service: t('inventory.title'),
       exportDate: new Date().toISOString(),
       period: data.metadata.periode,

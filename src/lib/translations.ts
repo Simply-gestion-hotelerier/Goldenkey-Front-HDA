@@ -27,7 +27,7 @@ export const translations = {
       role: "Rôle",
     },
     index: {
-      welcome: ">Simply Hotel",
+      welcome: ">Hôtel de l'Avenue<",
       overview: "Plateforme de gestion complète • Vue d'ensemble temps réel",
       stats: {
         present: "Clients Présents",
