@@ -1,13 +1,16 @@
 {
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "outDir": "dist",
-    "rootDir": "src",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
     "skipLibCheck": true,
-    "strict": true
-  },
-  "include": ["src"]
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false
+  }
 }
