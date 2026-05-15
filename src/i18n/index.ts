@@ -1,10 +1,11 @@
 // src/i18n/index.ts
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
-import frTranslations from './locales/fr.json';
-import enTranslations from './locales/en.json';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+
+import frTranslations from "./locales/fr.json";
+import enTranslations from "./locales/en.json";
 
 i18n
   .use(LanguageDetector)
@@ -12,20 +13,41 @@ i18n
   .init({
     resources: {
       fr: {
-        translation: frTranslations
+        translation: frTranslations,
       },
       en: {
-        translation: enTranslations
-      }
+        translation: enTranslations,
+      },
     },
-    fallbackLng: 'fr',
+
+    // Langue par défaut
+    lng: "fr",
+
+    // Si langue introuvable
+    fallbackLng: "fr",
+
+    // Langues autorisées
+    supportedLngs: ["fr", "en"],
+
     debug: false,
+
     interpolation: {
       escapeValue: false,
     },
+
     detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
+      // priorité
+      order: ["localStorage", "navigator"],
+
+      // sauvegarde
+      caches: ["localStorage"],
+
+      // clé utilisée
+      lookupLocalStorage: "i18nextLng",
+    },
+
+    react: {
+      useSuspense: false,
     },
   });
 
