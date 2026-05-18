@@ -55,8 +55,51 @@
     "available": "Available",
     "from": "From",
     "to": "To",
-    "period": "Period"
+    "period": "Period",
+    "periodLabel": "Period",
+    "errorLoading": "Error loading",
+    "hour": "Hour",
+    "order": "Order",
+    "invoice": "Invoice",
+    "items": "Items",
+    "qty": "Qty",
+    "unitPrice": "Unit price",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "paid": "Paid",
+    "balance": "Balance",
+    "due": "Due",
+    "credit": "Credit",
+    "change": "Change",
+    "operator": "Operator",
+    "received": "Received",
+    "applied": "Applied",
+    "remaining": "Remaining",
+    "details": "Details",
+    "confirmDelete": "Confirm deletion",
+    "deleteConfirm": "Delete?",
+    "itemDeleted": "Item deleted",
+    "deleteError": "Delete error",
+    "refreshing": "Refreshing..."
   },
+
+  "login": {
+    "hotelManagement": "Hotel Management System",
+    "title": "Welcome",
+    "secureAccess": "Secure Access",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "usernameRequired": "Username is required",
+    "passwordRequired": "Password is required",
+    "loginButton": "Sign in",
+    "loggingIn": "Logging in...",
+    "forgotPassword": "Forgot password?",
+    "error": "Invalid credentials",
+    "connectionError": "Connection error. Please try again."
+  },
+
   "hotelPlan": {
     "maintenance": "Maintenance",
     "ratePerStay": "stay",
@@ -98,6 +141,7 @@
     "retry": "Retry",
     "availableRooms": "{avail}/{total} room(s) available"
   },
+
   "nav": {
     "dashboard": "Dashboard",
     "hotel": "Hotel",
@@ -122,6 +166,7 @@
     "clientInvoice": "Client Invoice",
     "bar": "Bar"
   },
+
   "crm": {
     "title": "CRM & Customer Relations",
     "subtitle": "Customer base • Stays • Communications",
@@ -179,6 +224,7 @@
     "preferences": "Preferences",
     "loyaltyPoints": "Loyalty Points"
   },
+
   "dailyInvoice": {
     "title": "Daily Invoice",
     "subtitle": "Choose a department and date, then export to PDF or print 80mm ticket",
@@ -247,6 +293,7 @@
     "spaInvoice": "SPA",
     "dailyInvoiceTitle": "*** DAILY INVOICE ***"
   },
+
   "export": {
     "title": "Export",
     "excel": "Excel",
@@ -264,6 +311,7 @@
     "txtDescription": "Readable format",
     "jsonDescription": "Raw API data"
   },
+
   "errors": {
     "generic": "An error occurred",
     "network": "Connection error",
@@ -272,6 +320,7 @@
     "validation": "Validation error",
     "stockInsufficient": "Insufficient stock for some ingredients"
   },
+
   "profile": {
     "myAccount": "My account",
     "logout": "Logout",
@@ -283,6 +332,7 @@
     "security": "Security",
     "settings": "Settings"
   },
+
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all read",
@@ -291,6 +341,7 @@
     "delete": "Delete",
     "markAsRead": "Mark as read"
   },
+
   "inventory": {
     "allStores": "All stores",
     "exportReport": "INVENTORY REPORT - Hôtel de l'Avenue",
@@ -421,6 +472,7 @@
     "movementOut": "Out",
     "movementAdjust": "Adjust"
   },
+
   "reports": {
     "title": "Reports",
     "subtitle": "Sales, orders and stock analysis",
@@ -486,6 +538,7 @@
     "due": "due",
     "footer": "Hotel management system — Automatically generated document"
   },
+
   "reservations": {
     "title": "Reservations",
     "newReservation": "New reservation",
@@ -611,6 +664,7 @@
     "confirmed": "Confirmed",
     "pending": "Pending"
   },
+
   "restaurant": {
     "subtitle": "Orders • Kitchen • Inventory • Cash",
     "orderDeleted": "Order deleted",
@@ -765,6 +819,218 @@
       "table": "Table"
     }
   },
+
+  "restaurantPos": {
+    "title": "Order Taking",
+    "subtitle": "Tables → Dishes → Payment",
+    "posRestaurant": "Restaurant",
+    "roomFolios": "Room Folios",
+    "tables": "Tables",
+    "menu": "Menu",
+    "orders": "Orders",
+    "createTable": "Create",
+    "tableCreated": "Table created",
+    "tableModified": "Table modified",
+    "tableDeleted": "Table deleted",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search…",
+    "noDishesFound": "No dishes found",
+    "noDishesInCategory": "No dishes in this category",
+    "back": "Back",
+    "loading": "Loading…",
+    "selectTable": "Select a table",
+    "noActiveOrders": "No active orders",
+    "invoiceNo": "Invoice No.",
+    "noItems": "No items",
+    "close": "Close",
+    "detailsPay": "Details / Pay",
+    "notAllDelivered": "Not all dishes have been delivered yet",
+    "specialInstruction": "Special instruction",
+    "visibleOnKitchenTicket": "Visible on the kitchen ticket.",
+    "add": "Add",
+    "adding": "Adding…",
+    "preparation": "Preparation",
+    "difficulty": "Difficulty",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "ingredients": "Ingredients",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "addToOrder": "Add to order",
+    "loadingFolio": "Loading…",
+    "noGuestsToday": "No checked-in guests today",
+    "refresh": "Refresh",
+    "invoiceHeader": "** ORDER / INVOICE **",
+    "orderNo": "Order No.",
+    "table": "Table",
+    "order": "Order",
+    "date": "Date",
+    "time": "Time",
+    "items": "ITEMS",
+    "subtotal": "SUBTOTAL",
+    "discount": "DISCOUNT",
+    "totalIncTax": "TOTAL INC. TAX",
+    "payments": "PAYMENTS",
+    "received": "Received",
+    "change": "Change",
+    "operator": "Operator",
+    "remaining": "REMAINING",
+    "paid": "PAID",
+    "bankFeeInfo": "BANK FEE INFORMATION",
+    "consumptionAmount": "Consumption amount",
+    "bankFees": "Bank fees",
+    "totalCardDebit": "TOTAL CARD DEBIT",
+    "feesRetained": "fees retained by the bank",
+    "thankYou": "Thank you for your visit!",
+    "invoice": "INVOICE",
+    "no": "No.",
+    "internalOrder": "Internal Order",
+    "service": "Service",
+    "server": "Server",
+    "dineIn": "Dine in",
+    "item": "Item",
+    "unitPrice": "Unit Price",
+    "qty": "Qty",
+    "total": "Total",
+    "totalCollected": "TOTAL COLLECTED",
+    "amountDue": "Amount Due",
+    "balancePaid": "Balance Paid",
+    "printedOn": "Printed on",
+    "signatureNote": "Document not valid without signature",
+    "consumptionCollected": "Consumption amount collected:",
+    "bankFees5": "+ Bank fees (5%)",
+    "retainedByBank": "retained by the bank",
+    "totalDebitedCard": "→ Total debited from your card:",
+    "cardPaymentSummary": "Credit Card Payment Summary",
+    "totalDebitedFromCard": "TOTAL DEBITED FROM YOUR CARD",
+    "feeExplanation": "The establishment only collects your consumption amount ({{amount}}). The {{fees}} Ar fees are directly retained by your bank.",
+    "tableCodePlaceholder": "Code (ex: R1)",
+    "deleteTableConfirm": "Delete table {{code}} ?",
+    "closeOrdersFirst": "Close orders first",
+    "activeOrders": "Active orders",
+    "dish": "dish",
+    "dishes": "dishes",
+    "viewDetails": "View details",
+    "refreshing": "Refreshing…",
+    "status": "Status",
+    "applyDiscount": "Apply a discount",
+    "discountApplied": "Discount applied",
+    "discountRemoved": "Discount removed",
+    "discountType": "Discount type",
+    "amount": "Amount",
+    "percentage": "Percentage",
+    "amountAr": "Amount (Ar)",
+    "percentExample": "Ex: 10",
+    "amountExample": "Ex: 5000",
+    "reasonOptional": "Reason (optional)",
+    "reasonPlaceholder": "Ex: loyalty customer, daily promotion…",
+    "newTotal": "New total inc. tax",
+    "discountExceedsSubtotal": "⚠ Discount exceeds subtotal",
+    "applying": "Applying…",
+    "apply": "Apply",
+    "recordedPayments": "Recorded payments",
+    "collectedByEstablishment": "Collected by establishment",
+    "bankFeesRetained": "Bank fees (5%) — retained by bank",
+    "totalCustomerCardDebit": "Total debited from customer's card",
+    "collectPayment": "Collect payment",
+    "amountToCollect": "Amount to collect (Ar)",
+    "paymentMethod": "Payment method",
+    "cash": "Cash",
+    "creditCard": "Credit Card",
+    "mobileMoney": "Mobile Money",
+    "bankTransfer": "Bank Transfer",
+    "amountReceivedFromCustomer": "Amount received from customer (Ar)",
+    "min": "Min",
+    "changeToGive": "Change to give",
+    "paymentExceedsBalance": "The payment amount ({{amount}} Ar) exceeds the remaining due ({{balance}} Ar). A credit of {{credit}} Ar will be recorded.",
+    "cardSummary": "Credit card summary (customer information)",
+    "consumptionCollected": "Consumption amount collected",
+    "bankFeesRetainedShort": "+ Bank fees (5%) — retained by the bank",
+    "feeExplanationShort": "The establishment collects {{amount}} Ar. The {{fees}} Ar fees are retained by the bank.",
+    "collect": "Collect",
+    "orderFullyPaid": "Order fully paid",
+    "alreadyCollected": "Already collected",
+    "paidInFull": "Paid in full ✓",
+    "chargeToRoomFolio": "Charge to room folio",
+    "selectCheckedInGuest": "Select the checked-in guest",
+    "selectReservation": "Select a reservation",
+    "chargeAndClose": "Charge & Close",
+    "accommodationCharges": "Accommodation Charges",
+    "description": "Description",
+    "dept": "Dept.",
+    "accommodationTotal": "Accommodation Total",
+    "paidLower": "paid",
+    "unpaidLower": "unpaid",
+    "all": "All",
+    "noOrdersFilter": "No orders in this filter.",
+    "orderLabel": "Order",
+    "itemsLower": "item(s)",
+    "delivered": "delivered",
+    "paidInFull": "Paid in full",
+    "kitchenStatus": "Kitchen Status",
+    "action": "Action",
+    "paymentsReceived": "Payments received",
+    "paymentsReceivedHotelFolio": "Payments received (hotel folio)",
+    "applied": "Applied",
+    "totalFolioPayments": "Total folio payments",
+    "directOrderPayments": "Direct order payments",
+    "guestCredit": "Guest Credit",
+    "including": "including",
+    "ofUnpaidOrders": "of unpaid orders",
+    "bankFeeInformation": "Bank Fee Information",
+    "consumption": "Consumption",
+    "bankFee5": "Bank Fee (5%)",
+    "bankRetained": "bank retained",
+    "totalDebited": "Total Debited",
+    "fromCard": "from card",
+    "establishmentCollects": "The establishment only collects {{amount}} Ar. The {{fees}} Ar fees are directly retained by your bank.",
+    "deleteLineConfirm": "Delete \"{{item}}\" from this order?",
+    "itemDeleted": "Item deleted",
+    "deleteConfirmLine": "Delete \"{{item}}\" from this order?",
+    "cannotDeleteTable": "Cannot delete table",
+    "itemAdded": "Item added",
+    "addError": "Add error",
+    "closeError": "Close error",
+    "paymentRecorded": "Payment recorded",
+    "paymentSuccess": "Payment successful",
+    "paymentError": "Payment error",
+    "discountError": "Discount error",
+    "chargeError": "Charge error",
+    "statusUpdateError": "Status update error",
+    "unableToLoadOrder": "Unable to load order",
+    "invalidPaymentAmount": "Invalid payment amount",
+    "amountReceivedMustBeGreater": "The received amount ({{received}} Ar) must be greater than or equal to the amount due ({{amount}} Ar)",
+    "enterValidDiscount": "Please enter a valid discount",
+    "active": "Active",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "fireCommanded": "Ordered",
+    "firePreparing": "Preparing",
+    "fireReady": "Ready",
+    "fireDelivered": "Delivered",
+    "fireVoided": "Cancelled",
+    "catBeverage": "Beverage",
+    "catBreakfast": "Breakfast",
+    "catAppetizer": "Appetizer",
+    "catMainCourse": "Main Course",
+    "catSideDish": "Side Dish",
+    "catDessert": "Dessert",
+    "catSnack": "Snack",
+    "guestsInRoom": "Guests in room",
+    "foliosWithBalance": "Folios with balance due",
+    "totalCollected": "Total collected",
+    "totalDue": "Total due",
+    "accommodation": "Accomm.",
+    "due": "Due",
+    "folioLabel": "Folio",
+    "orderCount": "order(s)",
+    "roomFolios": "Room Folios",
+    "folioSubtitle": "Checked-in guests · accommodation + orders + kitchen statuses",
+    "noGuestsToday": "No checked-in guests today"
+  },
+
   "roomInspection": {
     "title": "Room Inspection",
     "subtitle": "Condition, remarks, photos",
@@ -777,6 +1043,7 @@
     "inspectionError": "Inspection error",
     "validateInspection": "Validate inspection"
   },
+
   "settings": {
     "title": "Settings",
     "subtitle": "Account • Theme",
@@ -793,6 +1060,7 @@
     "profileUpdateError": "Error updating profile",
     "imageTooLarge": "Image must not exceed 2MB"
   },
+
   "rooms": {
     "roomManagement": "Room Management",
     "roomAdded": "Room added",
@@ -843,6 +1111,7 @@
     "capacity": "Capacity",
     "bedType": "Bed Type"
   },
+
   "hotel": {
     "configuration": "Hotel · Configuration",
     "available": "Available",
@@ -888,6 +1157,7 @@
     "exportSuccess": "Export successful",
     "exportError": "Export error"
   },
+
   "spa": {
     "subtitle": "Schedule • Services • Inventory • Payments",
     "appointmentStarted": "Appointment started",
@@ -961,6 +1231,7 @@
     "startTime": "Start Time",
     "endTime": "End Time"
   },
+
   "team": {
     "title": "Team",
     "subtitle": "Manage user accounts",
@@ -993,6 +1264,7 @@
       "cashier": "Cashier"
     }
   },
+
   "dashboard": {
     "title": "Hôtel de l'Avenue",
     "subtitle": "Complete Management Platform",
@@ -1007,6 +1279,7 @@
     "spaAppointments": "Today's Spa Appointments",
     "reportAndAnalysis": "Report & Data Analysis"
   },
+
   "housekeeping": {
     "title": "Housekeeping",
     "subtitle": "Room tracking and status",
@@ -1022,6 +1295,7 @@
     "statusUpdatedDesc": "Room status has been updated.",
     "room": "Room"
   },
+
   "guestInvoice": {
     "title": "Guest Invoice (folio)",
     "subtitle": "Search for a customer — paid and unpaid orders, 80mm or A4 printing.",
@@ -1089,25 +1363,26 @@
     "unpaidOrders": "of unpaid orders",
     "settledMessage": "Account settled — Thank you for your stay!"
   },
+
   "recentActivity": {
-  "title": "Recent Activity",
-  "secondsAgo": "{{seconds}}s ago",
-  "minutesAgo": "{{minutes}} min ago",
-  "hoursAgo": "{{hours}} h ago",
-  "guestArrival": "Guest Arrival",
-  "reservation": "Reservation",
-  "guest": "Guest",
-  "room": "Rm",
-  "newOrder": "New Order",
-  "table": "Table",
-  "order": "Order",
-  "items": "item(s)",
-  "serviceCompleted": "Service Completed",
-  "spaAppointment": "Spa Appointment",
-  "stockMovement": "Stock {{type}}",
-  "in": "In",
-  "out": "Out",
-  "item": "Item",
-  "noActivity": "No activity available"
-}
+    "title": "Recent Activity",
+    "secondsAgo": "{{seconds}}s ago",
+    "minutesAgo": "{{minutes}} min ago",
+    "hoursAgo": "{{hours}} h ago",
+    "guestArrival": "Guest Arrival",
+    "reservation": "Reservation",
+    "guest": "Guest",
+    "room": "Rm",
+    "newOrder": "New Order",
+    "table": "Table",
+    "order": "Order",
+    "items": "item(s)",
+    "serviceCompleted": "Service Completed",
+    "spaAppointment": "Spa Appointment",
+    "stockMovement": "Stock {{type}}",
+    "in": "In",
+    "out": "Out",
+    "item": "Item",
+    "noActivity": "No activity available"
+  }
 }
