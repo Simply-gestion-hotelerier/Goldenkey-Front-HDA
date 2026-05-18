@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 /* ── helpers ───────────────────────────────────────── */
 function fmt(n: number) {
@@ -99,6 +100,7 @@ interface GuestFolio {
    COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function GuestInvoice() {
+  const { t } = useTranslation();
   const [search, setSearch]   = useState("");
   const [folioId, setFolioId] = useState<number | null>(null);
   const [currency, setCurrency] = useState<"MGA" | "EUR" | "USD">("MGA");
@@ -154,18 +156,18 @@ export default function GuestInvoice() {
     const dsh = "-".repeat(W);
 
     const lines: string[] = [
-      centerLine("HOTEL / FACTURE CLIENT", W),
+      centerLine(t('guestInvoice.hotelLabel'), W),
       centerLine(folio.guestName.toUpperCase(), W),
       folio.guestCompany ? centerLine(folio.guestCompany, W) : "",
       sep,
-      padLine("Chambre :", `${folio.roomNumber} (${folio.roomType})`, W),
-      padLine("Arrivee :", folio.checkIn, W),
-      padLine("Depart  :", folio.checkOut, W),
-      padLine("Nuits   :", String(folio.nights), W),
+      padLine(t('guestInvoice.room') + " :", `${folio.roomNumber} (${folio.roomType})`, W),
+      padLine(t('guestInvoice.checkIn') + " :", folio.checkIn, W),
+      padLine(t('guestInvoice.checkOut') + " :", folio.checkOut, W),
+      padLine(t('guestInvoice.nights') + " :", String(folio.nights), W),
       sep,
-      centerLine("-- HEBERGEMENT --", W),
+      centerLine(t('guestInvoice.accommodation'), W),
       dsh,
-      padLine(`Chambre x${folio.nights}`, fmt(convert(folio.ratePerNight * folio.nights)) + " " + sym, W),
+      padLine(t('guestInvoice.roomLabel') + ` x${folio.nights}`, fmt(convert(folio.ratePerNight * folio.nights)) + " " + sym, W),
       ...folio.charges
         .filter((c) => !c.description.toLowerCase().includes("chambre"))
         .map((c) =>
@@ -175,9 +177,9 @@ export default function GuestInvoice() {
 
     if (allOrders.length > 0) {
       lines.push(dsh);
-      lines.push(centerLine("-- COMMANDES --", W));
+      lines.push(centerLine(t('guestInvoice.orders'), W));
       allOrders.forEach((o) => {
-        const tag = o.paid ? "[PAYE]" : "[IMPAYE]";
+        const tag = o.paid ? `[${t('guestInvoice.paidLabel')}]` : `[${t('guestInvoice.unpaidLabel')}]`;
         lines.push(padLine(`${o.dept.toUpperCase()} #${o.id} ${tag}`, fmt(convert(o.totalAmount)) + " " + sym, W));
         o.lines.forEach((l) =>
           lines.push("  " + padLine(l.itemName.substring(0, 20) + ` x${l.qty}`, fmt(convert(l.unitPrice * l.qty)) + " " + sym, W - 2))
@@ -186,20 +188,20 @@ export default function GuestInvoice() {
     }
 
     lines.push(dsh);
-    lines.push(padLine("TOTAL CHARGES", fmt(convert(folio.totalCharges)) + " " + sym, W));
+    lines.push(padLine(t('guestInvoice.totalCharges'), fmt(convert(folio.totalCharges)) + " " + sym, W));
     if (unpaidTotal > 0)
-      lines.push(padLine("dont IMPAYE", fmt(convert(unpaidTotal)) + " " + sym, W));
+      lines.push(padLine(t('guestInvoice.unpaidAmount'), fmt(convert(unpaidTotal)) + " " + sym, W));
     lines.push(dsh);
     folio.payments.forEach((p) => {
-      const m = { cash: "Especes", card: "CB", mobile: "Mobile", bank: "Virement" }[p.method] ?? p.method;
-      lines.push(padLine(`  Paiement (${m})`, fmt(convert(p.amount)) + " " + sym, W));
+      const m = { cash: "Espèces", card: "CB", mobile: "Mobile", bank: "Virement" }[p.method] ?? p.method;
+      lines.push(padLine(`  ${t('guestInvoice.payment')} (${m})`, fmt(convert(p.amount)) + " " + sym, W));
     });
     lines.push(sep);
-    const balLabel = folio.balance > 0 ? "SOLDE DU" : folio.balance < 0 ? "AVOIR" : "SOLDE";
+    const balLabel = folio.balance > 0 ? t('guestInvoice.balanceDue') : folio.balance < 0 ? t('guestInvoice.credit') : t('guestInvoice.settled');
     lines.push(padLine(balLabel, fmt(convert(Math.abs(folio.balance))) + " " + sym, W));
     lines.push(sep);
     lines.push("");
-    lines.push(centerLine("Merci de votre sejour !", W));
+    lines.push(centerLine(t('guestInvoice.thankYou'), W));
     lines.push(centerLine(new Date().toLocaleString("fr-FR"), W));
     lines.push(""); lines.push("");
 
@@ -218,38 +220,43 @@ export default function GuestInvoice() {
 
     const chargeRows = [
       `<tr style="background:#eff6ff">
-        <td>${folio.checkIn}</td><td>Chambre ${folio.roomNumber} (${folio.roomType})</td>
-        <td><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-size:10px">HOTEL</span></td>
+        <td>${folio.checkIn}</td>
+        <td>${t('guestInvoice.roomLabel')} ${folio.roomNumber} (${folio.roomType})</td>
+        <td><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-size:10px">${t('guestInvoice.hotelDept')}</span></td>
         <td style="text-align:right">${fmt(convert(folio.ratePerNight))} ${sym}</td>
         <td style="text-align:right">${folio.nights}</td>
         <td style="text-align:right;font-weight:600">${fmt(convert(folio.ratePerNight * folio.nights))} ${sym}</td></tr>`,
       ...folio.charges.filter(c => !c.description.toLowerCase().includes("chambre")).map(c =>
-        `<tr><td>${new Date(c.createdAt).toLocaleDateString("fr-FR")}</td>
-         <td>${c.description}</td>
-         <td><span style="background:#f3f4f6;padding:1px 6px;border-radius:4px;font-size:10px">${c.department.toUpperCase()}</span></td>
-         <td style="text-align:right">${fmt(convert(c.unitPrice))} ${sym}</td>
-         <td style="text-align:right">${c.qty}</td>
-         <td style="text-align:right">${fmt(convert(c.unitPrice * c.qty))} ${sym}</td></tr>`
+        `<tr>
+          <td>${new Date(c.createdAt).toLocaleDateString("fr-FR")}</td>
+          <td>${c.description}</td>
+          <td><span style="background:#f3f4f6;padding:1px 6px;border-radius:4px;font-size:10px">${c.department.toUpperCase()}</span></td>
+          <td style="text-align:right">${fmt(convert(c.unitPrice))} ${sym}</td>
+          <td style="text-align:right">${c.qty}</td>
+          <td style="text-align:right">${fmt(convert(c.unitPrice * c.qty))} ${sym}</td>
+        </tr>`
       ),
     ].join("");
 
     const orderRows = allOrders.map(o => {
       const badge = o.paid
-        ? `<span style="background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:4px;font-size:10px">PAYE</span>`
-        : `<span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;font-size:10px">IMPAYE</span>`;
+        ? `<span style="background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:4px;font-size:10px">${t('guestInvoice.paidLabel')}</span>`
+        : `<span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;font-size:10px">${t('guestInvoice.unpaidLabel')}</span>`;
       const sub = o.lines.map(l =>
         `<tr style="background:#fafafa"><td style="padding:3px 10px 3px 26px;color:#6b7280" colspan=2>↳ ${l.itemName} x${l.qty}</td>
-         <td></td><td style="text-align:right;color:#6b7280">${fmt(convert(l.unitPrice))} ${sym}</td>
-         <td style="text-align:right;color:#6b7280">${l.qty}</td>
-         <td style="text-align:right;color:#6b7280">${fmt(convert(l.unitPrice * l.qty))} ${sym}</td></tr>`
+          <td></td><td style="text-align:right;color:#6b7280">${fmt(convert(l.unitPrice))} ${sym}</td>
+          <td style="text-align:right;color:#6b7280">${l.qty}</td>
+          <td style="text-align:right;color:#6b7280">${fmt(convert(l.unitPrice * l.qty))} ${sym}</td>
+        </tr>`
       ).join("");
       return `<tr${!o.paid ? ' style="background:#fff5f5"' : ''}>
         <td>${new Date(o.openedAt).toLocaleDateString("fr-FR")}</td>
-        <td>Commande #${o.id} — ${o.dept.toUpperCase()}</td>
+        <td>${t('guestInvoice.orderLabel')} #${o.id} — ${o.dept.toUpperCase()}</td>
         <td>${badge}</td>
         <td style="text-align:right">—</td>
         <td style="text-align:right">${o.lines.reduce((s,l)=>s+l.qty,0)}</td>
-        <td style="text-align:right;font-weight:600">${fmt(convert(o.totalAmount))} ${sym}</td></tr>${sub}`;
+        <td style="text-align:right;font-weight:600">${fmt(convert(o.totalAmount))} ${sym}</td>
+      <tr>${sub}`;
     }).join("");
 
     const html = `<html><head><meta charset="utf-8"/>
@@ -271,10 +278,10 @@ export default function GuestInvoice() {
       .bal{padding:12px;border-radius:8px;font-weight:700;text-align:right;margin-top:12px;clear:both}
     </style></head><body>
       <div style="display:flex;justify-content:space-between;margin-bottom:20px">
-        <div><h1>Facture Client</h1><div style="color:#6b7280;font-size:12px">Système PMS Hôtel</div></div>
+        <div><h1>${t('guestInvoice.invoiceTitle')}</h1><div style="color:#6b7280;font-size:12px">${t('guestInvoice.systemLabel')}</div></div>
         <div style="text-align:right;color:#6b7280;font-size:12px">
-          <strong style="display:block;font-size:16px;color:#111">${folio.invoiceNumber ?? "Folio #" + folio.folioId}</strong>
-          Émis le ${new Date().toLocaleDateString("fr-FR")}
+          <strong style="display:block;font-size:16px;color:#111">${folio.invoiceNumber ?? t('guestInvoice.folioLabel') + " " + folio.folioId}</strong>
+          ${t('guestInvoice.issuedOn')} ${new Date().toLocaleDateString("fr-FR")}
         </div>
       </div>
       <div class="guest">
@@ -284,44 +291,46 @@ export default function GuestInvoice() {
         ${folio.guestPhone   ? `<div>${folio.guestPhone}</div>`   : ""}
       </div>
       <div class="stay">
-        <div><small>Chambre</small><strong>${folio.roomNumber} (${folio.roomType})</strong></div>
-        <div><small>Arrivée</small><strong>${folio.checkIn}</strong></div>
-        <div><small>Départ</small><strong>${folio.checkOut}</strong></div>
-        <div><small>Nuits</small><strong>${folio.nights}</strong></div>
+        <div><small>${t('guestInvoice.room')}</small><strong>${folio.roomNumber} (${folio.roomType})</strong></div>
+        <div><small>${t('guestInvoice.checkIn')}</small><strong>${folio.checkIn}</strong></div>
+        <div><small>${t('guestInvoice.checkOut')}</small><strong>${folio.checkOut}</strong></div>
+        <div><small>${t('guestInvoice.nights')}</small><strong>${folio.nights}</strong></div>
       </div>
 
-      <h2>Charges hébergement</h2>
+      <h2>${t('guestInvoice.accommodationCharges')}</h2>
       <table>
-        <thead><tr><th>Date</th><th>Désignation</th><th>Dépt.</th><th style="text-align:right">P.U.</th><th style="text-align:right">Qté</th><th style="text-align:right">Total</th></tr></thead>
+        <thead><tr><th>${t('guestInvoice.date')}</th><th>${t('guestInvoice.description')}</th><th>${t('guestInvoice.dept')}</th><th style="text-align:right">${t('guestInvoice.unitPrice')}</th><th style="text-align:right">${t('guestInvoice.qty')}</th><th style="text-align:right">${t('guestInvoice.total')}</th></tr></thead>
         <tbody>${chargeRows}</tbody>
       </table>
 
       ${allOrders.length > 0 ? `
-      <h2>Commandes — ${paidOrders.length} payée(s) · ${unpaidOrders.length} impayée(s)</h2>
+      <h2>${t('guestInvoice.ordersTitle')} — ${paidOrders.length} ${t('guestInvoice.paidCount')} · ${unpaidOrders.length} ${t('guestInvoice.unpaidCount')}</h2>
       <table>
-        <thead><tr><th>Date</th><th>Désignation</th><th>Statut</th><th style="text-align:right">P.U.</th><th style="text-align:right">Qté</th><th style="text-align:right">Total</th></tr></thead>
+        <thead><tr><th>${t('guestInvoice.date')}</th><th>${t('guestInvoice.description')}</th><th>${t('guestInvoice.status')}</th><th style="text-align:right">${t('guestInvoice.unitPrice')}</th><th style="text-align:right">${t('guestInvoice.qty')}</th><th style="text-align:right">${t('guestInvoice.total')}</th></tr></thead>
         <tbody>${orderRows}</tbody>
         <tfoot>
-          <tr><td colspan=5 style="text-align:right">Total commandes</td>
-            <td style="text-align:right">${fmt(convert(allOrders.reduce((s,o)=>s+o.totalAmount,0)))} ${sym}</td></tr>
-          ${unpaidTotal > 0 ? `<tr><td colspan=5 style="text-align:right;color:#dc2626">dont impayé</td>
+          <tr><td colspan=5 style="text-align:right">${t('guestInvoice.totalOrders')}</td>
+            <td style="text-align:right">${fmt(convert(allOrders.reduce((s,o)=>s+o.totalAmount,0)))} ${sym}</td>
+          </tr>
+          ${unpaidTotal > 0 ? `<tr><td colspan=5 style="text-align:right;color:#dc2626">${t('guestInvoice.unpaidAmount')}</td>
             <td style="text-align:right;color:#dc2626">${fmt(convert(unpaidTotal))} ${sym}</td></tr>` : ""}
         </tfoot>
       </table>` : ""}
 
       <div class="totals">
         <table>
-          <tr><td>Total charges</td><td style="text-align:right">${fmt(convert(folio.totalCharges))} ${sym}</td></tr>
-          <tr><td style="color:#059669">Total paiements</td><td style="text-align:right;color:#059669">-${fmt(convert(folio.totalPayments))} ${sym}</td></tr>
-          <tr style="border-top:2px solid #111"><td><strong>${folio.balance > 0 ? "SOLDE DÛ" : "SOLDÉ"}</strong></td>
-            <td style="text-align:right"><strong>${fmt(convert(Math.abs(folio.balance)))} ${sym}</strong></td></tr>
+          <tr><td>${t('guestInvoice.totalCharges')}</td><td style="text-align:right">${fmt(convert(folio.totalCharges))} ${sym}</td></tr>
+          <tr><td style="color:#059669">${t('guestInvoice.totalPayments')}</td><td style="text-align:right;color:#059669">-${fmt(convert(folio.totalPayments))} ${sym}</td></tr>
+          <tr style="border-top:2px solid #111"><td><strong>${folio.balance > 0 ? t('guestInvoice.balanceDue') : t('guestInvoice.settled')}</strong></td>
+            <td style="text-align:right"><strong>${fmt(convert(Math.abs(folio.balance)))} ${sym}</strong></td>
+          </tr>
         </table>
       </div>
       <div class="bal" style="${folio.balance > 0 ? "background:#fee2e2;color:#991b1b" : "background:#d1fae5;color:#065f46"}">
-        ${folio.balance > 0 ? `Solde du : ${fmt(convert(folio.balance))} ${sym}` : "Compte solde — Merci pour votre sejour !"}
+        ${folio.balance > 0 ? `${t('guestInvoice.balanceDue')} : ${fmt(convert(folio.balance))} ${sym}` : t('guestInvoice.settledMessage')}
       </div>
       <div style="margin-top:32px;font-size:10px;color:#9ca3af;text-align:center">
-        Imprime le ${new Date().toLocaleString("fr-FR")} — Folio #${folio.folioId}
+        ${t('guestInvoice.printedOn')} ${new Date().toLocaleString("fr-FR")} — ${t('guestInvoice.folioLabel')} #${folio.folioId}
       </div>
     </body></html>`;
 
@@ -338,31 +347,31 @@ export default function GuestInvoice() {
 
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <FileText className="h-7 w-7" /> Facture client (folio)
+              <FileText className="h-7 w-7" /> {t('guestInvoice.title')}
             </h1>
             <p className="text-muted-foreground">
-              Recherchez un client — commandes payées et impayées, impression 80 mm ou A4.
+              {t('guestInvoice.subtitle')}
             </p>
           </div>
 
           {/* ── Search ── */}
           <Card>
-            <CardHeader><CardTitle>Rechercher</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('guestInvoice.search')}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <input
                   className="w-full border rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                  placeholder="Nom du client, n° chambre, n° réservation…"
+                  placeholder={t('guestInvoice.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               {search.trim().length >= 2 && (
                 <div className="border rounded-md divide-y max-h-48 overflow-auto">
-                  {searching && <div className="p-3 text-sm text-muted-foreground">Recherche…</div>}
+                  {searching && <div className="p-3 text-sm text-muted-foreground">{t('guestInvoice.searching')}</div>}
                   {!searching && searchResults.length === 0 && (
-                    <div className="p-3 text-sm text-muted-foreground">Aucun résultat</div>
+                    <div className="p-3 text-sm text-muted-foreground">{t('guestInvoice.noResults')}</div>
                   )}
                   {searchResults.map((r) => (
                     <button
@@ -373,11 +382,11 @@ export default function GuestInvoice() {
                       <div>
                         <span className="font-medium">{r.guestName}</span>
                         <span className="text-muted-foreground ml-2 text-sm">
-                          Ch. {r.roomNumber} — arrivée {r.checkIn}
+                          {t('guestInvoice.room')}. {r.roomNumber} — {t('guestInvoice.arrival')} {r.checkIn}
                         </span>
                       </div>
                       <Badge variant={r.status === "open" ? "default" : "secondary"}>
-                        {r.status === "open" ? "En cours" : "Clôturé"}
+                        {r.status === "open" ? t('guestInvoice.open') : t('guestInvoice.closed')}
                       </Badge>
                     </button>
                   ))}
@@ -388,7 +397,7 @@ export default function GuestInvoice() {
 
           {isLoading && (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">Chargement du folio…</CardContent>
+              <CardContent className="py-8 text-center text-muted-foreground">{t('guestInvoice.loadingFolio')}</CardContent>
             </Card>
           )}
 
@@ -401,7 +410,7 @@ export default function GuestInvoice() {
                     <div>
                       <CardTitle className="text-xl">{folio.guestName}</CardTitle>
                       <p className="text-muted-foreground text-sm mt-1">
-                        Ch. {folio.roomNumber} ({folio.roomType}) · {folio.checkIn} → {folio.checkOut} · {folio.nights} nuit(s)
+                        {t('guestInvoice.room')}. {folio.roomNumber} ({folio.roomType}) · {folio.checkIn} → {folio.checkOut} · {folio.nights} {t('guestInvoice.nightsLower')}
                       </p>
                       {folio.guestCompany && <p className="text-sm text-muted-foreground">{folio.guestCompany}</p>}
                     </div>
@@ -419,7 +428,7 @@ export default function GuestInvoice() {
                         <Printer className="mr-2 h-4 w-4" /> 80 mm
                       </Button>
                       <Button onClick={onPrintA4}>
-                        <FileText className="mr-2 h-4 w-4" /> PDF A4
+                        <FileText className="mr-2 h-4 w-4" /> {t('guestInvoice.pdfA4')}
                       </Button>
                     </div>
                   </div>
@@ -433,17 +442,17 @@ export default function GuestInvoice() {
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <CardTitle className="flex items-center gap-2">
                         <ShoppingBag className="h-5 w-5" />
-                        Commandes
+                        {t('guestInvoice.orders')}
                         <span className="font-normal text-muted-foreground text-base">({allOrders.length})</span>
                       </CardTitle>
                       <div className="flex gap-2 text-sm">
                         <span className="flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          {paidOrders.length} payée(s)
+                          {paidOrders.length} {t('guestInvoice.paidLower')}
                         </span>
                         <span className="flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">
                           <XCircle className="h-3.5 w-3.5" />
-                          {unpaidOrders.length} impayée(s)
+                          {unpaidOrders.length} {t('guestInvoice.unpaidLower')}
                           {unpaidTotal > 0 && ` · ${fmt(convert(unpaidTotal))} ${sym}`}
                         </span>
                       </div>
@@ -460,14 +469,14 @@ export default function GuestInvoice() {
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           }`}
                         >
-                          {{ all: "Toutes", paid: "✓ Payées", unpaid: "⚠ Impayées" }[f]}
+                          {{ all: t('guestInvoice.all'), paid: "✓ " + t('guestInvoice.paidLower'), unpaid: "⚠ " + t('guestInvoice.unpaidLower') }[f]}
                         </button>
                       ))}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2 pt-0">
                     {filteredOrders.length === 0 && (
-                      <p className="text-sm text-muted-foreground py-3 text-center">Aucune commande dans ce filtre.</p>
+                      <p className="text-sm text-muted-foreground py-3 text-center">{t('guestInvoice.noOrdersFilter')}</p>
                     )}
                     {filteredOrders.map((o) => {
                       const expanded  = expandedOrders.has(o.id);
@@ -493,33 +502,33 @@ export default function GuestInvoice() {
                               }
                               <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-medium text-sm">Commande #{o.id}</span>
+                                  <span className="font-medium text-sm">{t('guestInvoice.orderLabel')} #{o.id}</span>
                                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DEPT_COLORS[o.dept] ?? "bg-gray-100 text-gray-700"}`}>
                                     {o.dept.toUpperCase()}
                                   </span>
                                   {o.paid ? (
                                     <span className="flex items-center gap-1 text-xs text-green-700 font-semibold">
-                                      <CheckCircle2 className="h-3.5 w-3.5" /> Payée
+                                      <CheckCircle2 className="h-3.5 w-3.5" /> {t('guestInvoice.paidLabel')}
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-1 text-xs text-red-700 font-semibold">
-                                      <XCircle className="h-3.5 w-3.5" /> Impayée
+                                      <XCircle className="h-3.5 w-3.5" /> {t('guestInvoice.unpaidLabel')}
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                   {new Date(o.openedAt).toLocaleString("fr-FR")}
                                   {o.closedAt && ` → ${new Date(o.closedAt).toLocaleString("fr-FR")}`}
-                                  {" · "}{o.lines.reduce((s, l) => s + l.qty, 0)} article(s)
+                                  {" · "}{o.lines.reduce((s, l) => s + l.qty, 0)} {t('guestInvoice.itemsLower')}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right shrink-0 ml-4">
                               <div className="font-semibold text-sm">{fmt(convert(o.totalAmount))} {sym}</div>
                               {!o.paid && o.paidAmount > 0 && (
-                                <div className="text-xs text-red-600">Reste : {fmt(convert(unpaidAmt))} {sym}</div>
+                                <div className="text-xs text-red-600">{t('guestInvoice.remaining')} : {fmt(convert(unpaidAmt))} {sym}</div>
                               )}
-                              {o.paid && <div className="text-xs text-green-600">Soldé</div>}
+                              {o.paid && <div className="text-xs text-green-600">{t('guestInvoice.settled')}</div>}
                             </div>
                           </button>
 
@@ -529,10 +538,10 @@ export default function GuestInvoice() {
                               <table className="w-full text-xs">
                                 <thead>
                                   <tr className="bg-muted/40">
-                                    <th className="p-2 text-left">Article</th>
-                                    <th className="p-2 text-right">P.U.</th>
-                                    <th className="p-2 text-right">Qté</th>
-                                    <th className="p-2 text-right">Total</th>
+                                    <th className="p-2 text-left">{t('guestInvoice.item')}</th>
+                                    <th className="p-2 text-right">{t('guestInvoice.unitPrice')}</th>
+                                    <th className="p-2 text-right">{t('guestInvoice.qty')}</th>
+                                    <th className="p-2 text-right">{t('guestInvoice.total')}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -547,18 +556,18 @@ export default function GuestInvoice() {
                                 </tbody>
                                 <tfoot>
                                   <tr className="bg-muted/30">
-                                    <td colSpan={3} className="p-2 text-right font-semibold">Sous-total</td>
+                                    <td colSpan={3} className="p-2 text-right font-semibold">{t('guestInvoice.subtotal')}</td>
                                     <td className="p-2 text-right font-bold">{fmt(convert(o.totalAmount))} {sym}</td>
                                   </tr>
                                   {o.paidAmount > 0 && (
                                     <tr>
-                                      <td colSpan={3} className="p-2 text-right text-green-700">Paiements reçus</td>
+                                      <td colSpan={3} className="p-2 text-right text-green-700">{t('guestInvoice.paymentsReceived')}</td>
                                       <td className="p-2 text-right text-green-700 font-medium">-{fmt(convert(o.paidAmount))} {sym}</td>
                                     </tr>
                                   )}
                                   {!o.paid && (
                                     <tr className="bg-red-50">
-                                      <td colSpan={3} className="p-2 text-right font-semibold text-red-700">Reste dû</td>
+                                      <td colSpan={3} className="p-2 text-right font-semibold text-red-700">{t('guestInvoice.amountDue')}</td>
                                       <td className="p-2 text-right font-bold text-red-700">{fmt(convert(unpaidAmt))} {sym}</td>
                                     </tr>
                                   )}
@@ -575,25 +584,25 @@ export default function GuestInvoice() {
 
               {/* ── Folio charges ── */}
               <Card>
-                <CardHeader><CardTitle>Charges hébergement</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('guestInvoice.accommodationCharges')}</CardTitle></CardHeader>
                 <CardContent>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/40">
-                        <th className="p-2 text-left">Date</th>
-                        <th className="p-2 text-left">Désignation</th>
-                        <th className="p-2 text-left">Dépt.</th>
-                        <th className="p-2 text-right">P.U.</th>
-                        <th className="p-2 text-right">Qté</th>
-                        <th className="p-2 text-right">Total</th>
+                        <th className="p-2 text-left">{t('guestInvoice.date')}</th>
+                        <th className="p-2 text-left">{t('guestInvoice.description')}</th>
+                        <th className="p-2 text-left">{t('guestInvoice.dept')}</th>
+                        <th className="p-2 text-right">{t('guestInvoice.unitPrice')}</th>
+                        <th className="p-2 text-right">{t('guestInvoice.qty')}</th>
+                        <th className="p-2 text-right">{t('guestInvoice.total')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="border-b bg-blue-50/40">
                         <td className="p-2">{folio.checkIn}</td>
-                        <td className="p-2 font-medium">Chambre {folio.roomNumber} ({folio.roomType})</td>
+                        <td className="p-2 font-medium">{t('guestInvoice.roomLabel')} {folio.roomNumber} ({folio.roomType})</td>
                         <td className="p-2">
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">HÔTEL</span>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{t('guestInvoice.hotelDept')}</span>
                         </td>
                         <td className="p-2 text-right">{fmt(convert(folio.ratePerNight))} {sym}</td>
                         <td className="p-2 text-right">{folio.nights}</td>
@@ -618,7 +627,7 @@ export default function GuestInvoice() {
                     </tbody>
                     <tfoot>
                       <tr className="bg-muted/40">
-                        <td colSpan={5} className="p-2 text-right font-semibold">Total charges</td>
+                        <td colSpan={5} className="p-2 text-right font-semibold">{t('guestInvoice.totalCharges')}</td>
                         <td className="p-2 text-right font-bold">{fmt(convert(folio.totalCharges))} {sym}</td>
                       </tr>
                     </tfoot>
@@ -630,19 +639,19 @@ export default function GuestInvoice() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" /> Paiements reçus
+                    <CreditCard className="h-5 w-5" /> {t('guestInvoice.paymentsReceived')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {folio.payments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Aucun paiement enregistré.</p>
+                    <p className="text-sm text-muted-foreground">{t('guestInvoice.noPayments')}</p>
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/40">
-                          <th className="p-2 text-left">Date</th>
-                          <th className="p-2 text-left">Moyen</th>
-                          <th className="p-2 text-right">Montant</th>
+                          <th className="p-2 text-left">{t('guestInvoice.date')}</th>
+                          <th className="p-2 text-left">{t('guestInvoice.method')}</th>
+                          <th className="p-2 text-right">{t('guestInvoice.amount')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -656,7 +665,7 @@ export default function GuestInvoice() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-muted/40">
-                          <td colSpan={2} className="p-2 text-right font-semibold">Total paiements</td>
+                          <td colSpan={2} className="p-2 text-right font-semibold">{t('guestInvoice.totalPayments')}</td>
                           <td className="p-2 text-right font-bold text-green-600">{fmt(convert(folio.totalPayments))} {sym}</td>
                         </tr>
                       </tfoot>
@@ -675,11 +684,11 @@ export default function GuestInvoice() {
                         : <CheckCircle2 className="h-5 w-5 text-green-600" />
                       }
                       <span className="font-semibold text-lg">
-                        {folio.balance > 0 ? "Solde dû" : folio.balance < 0 ? "Avoir client" : "Compte soldé"}
+                        {folio.balance > 0 ? t('guestInvoice.balanceDue') : folio.balance < 0 ? t('guestInvoice.credit') : t('guestInvoice.settled')}
                       </span>
                       {unpaidTotal > 0 && (
                         <span className="text-sm text-red-600 ml-1">
-                          (dont {fmt(convert(unpaidTotal))} {sym} de commandes impayées)
+                          ({t('guestInvoice.including')} {fmt(convert(unpaidTotal))} {sym} {t('guestInvoice.unpaidOrders')})
                         </span>
                       )}
                     </div>

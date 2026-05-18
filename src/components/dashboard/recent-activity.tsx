@@ -4,6 +4,7 @@ import { Clock, User, UtensilsCrossed, Package, CheckCircle } from "lucide-react
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/rbac";
+import { useTranslation } from "react-i18next";
 
 const statusStyles = {
   success: "bg-success/10 text-success border-success/20",
@@ -17,15 +18,16 @@ type Activity = {
   status: keyof typeof statusStyles; ts: number;
 };
 
-const relTime = (d: Date) => {
+const relTime = (d: Date, t: (key: string) => string) => {
   const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (diff < 60)    return `Il y a ${diff}s`;
-  if (diff < 3600)  return `Il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
+  if (diff < 60)    return t('recentActivity.secondsAgo', { seconds: diff });
+  if (diff < 3600)  return t('recentActivity.minutesAgo', { minutes: Math.floor(diff / 60) });
+  if (diff < 86400) return t('recentActivity.hoursAgo', { hours: Math.floor(diff / 3600) });
   return d.toLocaleDateString("fr-FR");
 };
 
 export function RecentActivity() {
+  const { t } = useTranslation();
   const { user, hasScopes } = useAuth();
 
   const canReadReservations = hasScopes("reservations:read");
@@ -41,7 +43,7 @@ export function RecentActivity() {
   const { data: reservations = [] } = useQuery({
     queryKey: ["hotel", "reservations", ymd],
     queryFn: () => api.get<any[]>(`/hotel/reservations?date=${ymd}`),
-    enabled: canReadReservations,                          // ✅
+    enabled: canReadReservations,
     refetchInterval: canReadReservations ? 10000 : false,
     staleTime: 5000,
   });
@@ -49,7 +51,7 @@ export function RecentActivity() {
   const { data: orders = [] } = useQuery({
     queryKey: ["restaurant", "orders", "open"],
     queryFn: () => api.get<any[]>(`/restaurant/orders?status=open`),
-    enabled: canReadOrders,                                // ✅
+    enabled: canReadOrders,
     refetchInterval: canReadOrders ? 10000 : false,
     staleTime: 5000,
   });
@@ -57,7 +59,7 @@ export function RecentActivity() {
   const { data: apps = [] } = useQuery({
     queryKey: ["spa", "appointments", ymd],
     queryFn: () => api.get<any[]>(`/spa/appointments?start=${startOfDay.toISOString()}&end=${endOfDay.toISOString()}`),
-    enabled: canReadSpa,                                   // ✅
+    enabled: canReadSpa,
     refetchInterval: canReadSpa ? 15000 : false,
     staleTime: 7000,
   });
@@ -65,7 +67,7 @@ export function RecentActivity() {
   const { data: moves = [] } = useQuery({
     queryKey: ["inventory", "movements"],
     queryFn: () => api.get<any[]>(`/inventory/movements?limit=20`),
-    enabled: canReadInventory,                             // ✅
+    enabled: canReadInventory,
     refetchInterval: canReadInventory ? 20000 : false,
     staleTime: 10000,
   });
@@ -73,33 +75,33 @@ export function RecentActivity() {
   const activities: Activity[] = [
     ...reservations.map((r: any) => ({
       id: `res-${r.id}`, icon: User,
-      title: r.status === "checked_in" ? "Arrivée Client" : "Réservation",
-      description: `${r.guest?.fullName ?? "Client"} — Ch ${r.room?.number ?? ""}`,
-      time: relTime(new Date(r.createdAt ?? r.checkIn)),
+      title: r.status === "checked_in" ? t('recentActivity.guestArrival') : t('recentActivity.reservation'),
+      description: `${r.guest?.fullName ?? t('recentActivity.guest')} — ${t('recentActivity.room')} ${r.room?.number ?? ""}`,
+      time: relTime(new Date(r.createdAt ?? r.checkIn), t),
       status: r.status === "checked_in" ? ("success" as const) : ("pending" as const),
       ts: new Date(r.createdAt ?? r.checkIn).getTime(),
     })),
     ...orders.map((o: any) => ({
       id: `ord-${o.id}`, icon: UtensilsCrossed,
-      title: "Nouvelle Commande",
-      description: `${o.table?.code ? `Table ${o.table.code}` : "Commande"} — ${o.lines?.length ?? 0} article(s)`,
-      time: relTime(new Date(o.openedAt)),
+      title: t('recentActivity.newOrder'),
+      description: `${o.table?.code ? `${t('recentActivity.table')} ${o.table.code}` : t('recentActivity.order')} — ${o.lines?.length ?? 0} ${t('recentActivity.items')}`,
+      time: relTime(new Date(o.openedAt), t),
       status: "pending" as const,
       ts: new Date(o.openedAt).getTime(),
     })),
     ...apps.map((a: any) => ({
       id: `spa-${a.id}`, icon: CheckCircle,
-      title: a.status === "completed" ? "Prestation Terminée" : "RDV Spa",
+      title: a.status === "completed" ? t('recentActivity.serviceCompleted') : t('recentActivity.spaAppointment'),
       description: `${a.serviceName} — ${a.clientName}`,
-      time: relTime(new Date(a.createdAt ?? a.start)),
+      time: relTime(new Date(a.createdAt ?? a.start), t),
       status: a.status === "completed" ? ("success" as const) : ("pending" as const),
       ts: new Date(a.createdAt ?? a.start).getTime(),
     })),
     ...moves.map((m: any) => ({
       id: `mv-${m.id}`, icon: Package,
-      title: `Stock ${m.type}`,
-      description: `${m.item?.name ?? "Article"} — ${m.qty} ${m.type}`,
-      time: relTime(new Date(m.createdAt)),
+      title: t('recentActivity.stockMovement', { type: m.type === "in" ? t('recentActivity.in') : t('recentActivity.out') }),
+      description: `${m.item?.name ?? t('recentActivity.item')} — ${m.qty} ${m.type === "in" ? t('recentActivity.in') : t('recentActivity.out')}`,
+      time: relTime(new Date(m.createdAt), t),
       status: "warning" as const,
       ts: new Date(m.createdAt).getTime(),
     })),
@@ -112,13 +114,13 @@ export function RecentActivity() {
       <CardHeader>
         <CardTitle className="text-foreground flex items-center space-x-2">
           <Clock className="h-5 w-5" />
-          <span>Activité Récente</span>
+          <span>{t('recentActivity.title')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {activities.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
-            Aucune activité disponible
+            {t('recentActivity.noActivity')}
           </p>
         ) : (
           activities.map((activity) => (
