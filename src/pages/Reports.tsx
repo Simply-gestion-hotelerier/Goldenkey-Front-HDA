@@ -34,25 +34,25 @@ const METHOD_LBL: Record<string, string> = {
 };
 const DEPT_COLOR: Record<string, string> = {
   restaurant: "bg-orange-100 text-orange-800",
-  pub:        "bg-purple-100 text-purple-800",
-  hotel:      "bg-blue-100 text-blue-800",
-  spa:        "bg-teal-100 text-teal-800",
+  pub: "bg-purple-100 text-purple-800",
+  hotel: "bg-blue-100 text-blue-800",
+  spa: "bg-teal-100 text-teal-800",
 };
 const STATUS_COLOR: Record<string, string> = {
-  open:      "bg-yellow-100 text-yellow-800",
-  closed:    "bg-green-100 text-green-800",
+  open: "bg-yellow-100 text-yellow-800",
+  closed: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
 };
 
 // ── KPI Card ───────────────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, icon: Icon, color = "blue", trend }: any) {
   const colors: Record<string, string> = {
-    blue:  "bg-blue-50 text-blue-600 border-blue-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
     green: "bg-green-50 text-green-600 border-green-100",
     amber: "bg-amber-50 text-amber-600 border-amber-100",
-    red:   "bg-red-50 text-red-600 border-red-100",
-    teal:  "bg-teal-50 text-teal-600 border-teal-100",
-    purple:"bg-purple-50 text-purple-600 border-purple-100",
+    red: "bg-red-50 text-red-600 border-red-100",
+    teal: "bg-teal-50 text-teal-600 border-teal-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
   };
   return (
     <Card className="border shadow-sm hover:shadow-md transition-shadow">
@@ -223,9 +223,9 @@ function exportToExcel(from: string, to: string, salesData: any, stockData: any,
   const wb = XLSX.utils.book_new();
 
   // Feuille Synthèse
-  const restSum  = salesData?.restaurant?.summary;
+  const restSum = salesData?.restaurant?.summary;
   const hotelSum = salesData?.hotel?.summary;
-  const spaSum   = salesData?.spa?.summary;
+  const spaSum = salesData?.spa?.summary;
   const grandTotal = (restSum?.totalRevenue ?? 0) + (hotelSum?.totalRevenue ?? 0) + (spaSum?.totalRevenue ?? 0);
 
   const synthese = [
@@ -249,7 +249,7 @@ function exportToExcel(from: string, to: string, salesData: any, stockData: any,
     const headers = ["ID", t('common.date'), t('common.department'), t('dailyInvoice.table'), t('reports.items'), t('reports.subtotal'), t('reports.discount'), t('reports.total'), t('reports.paid'), t('reports.balance'), t('common.status')];
     const rows = salesData.restaurant.orders.map((o: any) => [
       o.id, new Date(o.openedAt).toLocaleDateString("fr-FR"), o.dept, o.tableCode ?? "—",
-      o.itemCount, o.subtotal, o.discount, o.total, o.paid, o.balance, o.status,
+      o.itemCount, o.subtotal, o.discount, o.total, o.paid, o.balance, o.status === "closed" ? t('reports.closed') : o.status === "open" ? t('reports.open') : t('reports.cancelled'),
     ]);
     const ws2 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws2["!cols"] = [{ wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
@@ -308,7 +308,7 @@ function exportToExcel(from: string, to: string, salesData: any, stockData: any,
     }
     const ws6 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws6["!cols"] = [{ wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 8 },
-      { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 12 }];
+    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 16 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws6, t('nav.inventory'));
   }
 
@@ -323,43 +323,43 @@ function exportToExcel(from: string, to: string, salesData: any, stockData: any,
 
 export default function Reports() {
   const { t } = useTranslation();
-  const [from, setFrom]       = useState(firstOfMonth);
-  const [to, setTo]           = useState(today);
+  const [from, setFrom] = useState(firstOfMonth);
+  const [to, setTo] = useState(today);
   const [deptFilter, setDeptFilter] = useState("all");
-  const [activeTab, setActiveTab]   = useState<"sales" | "orders" | "stock">("sales");
-  const [exporting, setExporting]   = useState(false);
+  const [activeTab, setActiveTab] = useState<"sales" | "orders" | "stock">("sales");
+  const [exporting, setExporting] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const salesQuery = useQuery({
     queryKey: ["reports", "sales", from, to, deptFilter],
-    queryFn:  () => api.get<any>(`/reports/sales?from=${from}&to=${to}&dept=${deptFilter}`),
-    enabled:  !!from && !!to,
+    queryFn: () => api.get<any>(`/reports/sales?from=${from}&to=${to}&dept=${deptFilter}`),
+    enabled: !!from && !!to,
   });
 
   const stockQuery = useQuery({
     queryKey: ["reports", "stock"],
-    queryFn:  () => api.get<any>("/reports/stock"),
+    queryFn: () => api.get<any>("/reports/stock"),
   });
 
   const ordersQuery = useQuery({
     queryKey: ["reports", "orders", from, to],
-    queryFn:  () => api.get<any>(`/reports/orders?from=${from}&to=${to}`),
-    enabled:  !!from && !!to,
+    queryFn: () => api.get<any>(`/reports/orders?from=${from}&to=${to}`),
+    enabled: !!from && !!to,
   });
 
-  const salesData  = salesQuery.data;
-  const stockData  = stockQuery.data;
+  const salesData = salesQuery.data;
+  const stockData = stockQuery.data;
   const ordersData = ordersQuery.data;
 
   // KPIs dérivés
-  const restRevenue  = salesData?.restaurant?.summary?.totalRevenue  ?? 0;
-  const hotelRevenue = salesData?.hotel?.summary?.totalRevenue  ?? 0;
-  const spaRevenue   = salesData?.spa?.summary?.totalRevenue    ?? 0;
-  const grandTotal   = restRevenue + hotelRevenue + spaRevenue;
-  const totalPaid    = (salesData?.restaurant?.summary?.totalPaid ?? 0) +
-                       (salesData?.hotel?.summary?.totalPaid     ?? 0) + spaRevenue;
-  const totalUnpaid  = grandTotal - totalPaid;
+  const restRevenue = salesData?.restaurant?.summary?.totalRevenue ?? 0;
+  const hotelRevenue = salesData?.hotel?.summary?.totalRevenue ?? 0;
+  const spaRevenue = salesData?.spa?.summary?.totalRevenue ?? 0;
+  const grandTotal = restRevenue + hotelRevenue + spaRevenue;
+  const totalPaid = (salesData?.restaurant?.summary?.totalPaid ?? 0) +
+    (salesData?.hotel?.summary?.totalPaid ?? 0) + spaRevenue;
+  const totalUnpaid = grandTotal - totalPaid;
 
   const handleExportPDF = () => {
     setExporting(true);
@@ -403,7 +403,7 @@ export default function Reports() {
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={() => { salesQuery.refetch(); stockQuery.refetch(); ordersQuery.refetch(); }}>
-                <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoading ? "animate-spin" : ""}`} /> 
+                <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
                 {isLoading ? t('common.loading') : t('common.refresh')}
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
@@ -443,8 +443,8 @@ export default function Reports() {
                 <div className="flex gap-1 ml-auto">
                   {[
                     { label: t('reports.today'), fn: () => { setFrom(today); setTo(today); } },
-                    { label: t('reports.last7Days'),  fn: () => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(d.toISOString().slice(0,10)); setTo(today); } },
-                    { label: t('reports.thisMonth'),fn: () => { setFrom(firstOfMonth); setTo(today); } },
+                    { label: t('reports.last7Days'), fn: () => { const d = new Date(); d.setDate(d.getDate() - 7); setFrom(d.toISOString().slice(0, 10)); setTo(today); } },
+                    { label: t('reports.thisMonth'), fn: () => { setFrom(firstOfMonth); setTo(today); } },
                   ].map(q => (
                     <Button key={q.label} variant="outline" size="sm" onClick={q.fn} className="h-9 text-xs px-3">{q.label}</Button>
                   ))}
@@ -456,7 +456,7 @@ export default function Reports() {
           {/* ── KPIs globaux ── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KPICard label={t('reports.totalSales')} value={`${fmt(grandTotal)} Ar`} icon={TrendingUp} color="blue" sub={`${from} → ${to}`} />
-            <KPICard label={t('reports.collected')} value={`${fmt(totalPaid)} Ar`} icon={CheckCircle2} color="green" sub={`${grandTotal > 0 ? Math.round((totalPaid/grandTotal)*100) : 0}% ${t('reports.ofRevenue')}`} />
+            <KPICard label={t('reports.collected')} value={`${fmt(totalPaid)} Ar`} icon={CheckCircle2} color="green" sub={`${grandTotal > 0 ? Math.round((totalPaid / grandTotal) * 100) : 0}% ${t('reports.ofRevenue')}`} />
             <KPICard label={t('reports.unpaid')} value={`${fmt(totalUnpaid)} Ar`} icon={AlertTriangle} color={totalUnpaid > 0 ? "red" : "green"} />
             <KPICard label={t('reports.stockAlerts')} value={`${stockData?.summary?.lowStockCount ?? 0} ${t('inventory.items')}`} icon={Package} color="amber" sub={`${stockData?.summary?.outOfStockCount ?? 0} ${t('inventory.outOfStockBadge')}`} />
           </div>
@@ -464,18 +464,17 @@ export default function Reports() {
           {/* ── Onglets ── */}
           <div className="flex gap-1 border-b">
             {([
-              { key: "sales",  label: t('reports.sales'),    icon: TrendingUp },
+              { key: "sales", label: t('reports.sales'), icon: TrendingUp },
               { key: "orders", label: t('reports.orders'), icon: ShoppingBag },
-              { key: "stock",  label: t('nav.inventory'),     icon: Package },
+              { key: "stock", label: t('nav.inventory'), icon: Package },
             ] as const).map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 <tab.icon className="w-4 h-4" /> {tab.label}
               </button>
@@ -596,7 +595,7 @@ export default function Reports() {
                             <td className="p-2 text-right text-green-600">{fmt(r.paid)} Ar</td>
                             <td className={`p-2 text-right font-semibold ${r.balance > 0 ? "text-red-600" : "text-green-600"}`}>{fmt(r.balance)} Ar</td>
                             <td className="p-2 text-center">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DEPT_COLOR[r.status] ?? "bg-gray-100 text-gray-700"}`}>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === "checked_in" ? "bg-green-100 text-green-800" : r.status === "checked_out" ? "bg-blue-100 text-blue-800" : r.status === "booked" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-700"}`}>
                                 {r.status === "checked_in" ? t('reports.checkedIn') : r.status === "checked_out" ? t('reports.checkedOut') : r.status === "booked" ? t('reports.booked') : r.status}
                               </span>
                             </td>
@@ -610,9 +609,9 @@ export default function Reports() {
                           <td className="p-2 text-right text-green-600">{fmt(salesData.hotel.summary.totalPaid)} Ar</td>
                           <td className={`p-2 text-right ${salesData.hotel.summary.unpaidBalance > 0 ? "text-red-600" : "text-green-600"}`}>
                             {fmt(salesData.hotel.summary.unpaidBalance)} Ar
-                           </td>
+                          </td>
                           <td />
-                         </tr>
+                        </tr>
                       </tfoot>
                     </table>
                   </div>
@@ -654,10 +653,10 @@ export default function Reports() {
                           <td className="p-2 text-right text-muted-foreground">
                             {spaRevenue > 0 ? Math.round((s.revenue / spaRevenue) * 100) : 0}%
                           </td>
-                         </tr>
+                        </tr>
                       ))}
                     </tbody>
-                   </table>
+                  </table>
                 </Section>
               )}
 
@@ -708,7 +707,14 @@ export default function Reports() {
                             {expanded && (
                               <div className="border-t p-3 bg-muted/10">
                                 <table className="w-full text-xs mb-2">
-                                  <thead><tr className="border-b"><th className="p-1 text-left">{t('inventory.itemName')}</th><th className="p-1 text-right">{t('dailyInvoice.unitPrice')}</th><th className="p-1 text-right">{t('dailyInvoice.qty')}</th><th className="p-1 text-right">{t('reports.total')}</th></tr></thead>
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="p-1 text-left">{t('inventory.itemName')}</th>
+                                      <th className="p-1 text-right">{t('dailyInvoice.unitPrice')}</th>
+                                      <th className="p-1 text-right">{t('dailyInvoice.qty')}</th>
+                                      <th className="p-1 text-right">{t('reports.total')}</th>
+                                    </tr>
+                                  </thead>
                                   <tbody>
                                     {o.lines.map((l: any, i: number) => (
                                       <tr key={i} className="border-b last:border-0">
@@ -716,10 +722,10 @@ export default function Reports() {
                                         <td className="p-1 text-right">{fmt(l.unitPrice)} Ar</td>
                                         <td className="p-1 text-right">{l.qty}</td>
                                         <td className="p-1 text-right font-medium">{fmt(l.total)} Ar</td>
-                                       </tr>
+                                      </tr>
                                     ))}
                                   </tbody>
-                                 </table>
+                                </table>
                                 {o.payments.length > 0 && (
                                   <div className="flex gap-2 flex-wrap">
                                     {o.payments.map((p: any, i: number) => (
@@ -799,7 +805,7 @@ export default function Reports() {
                                 <th className="p-2 text-right">{t('inventory.costPrice')}</th>
                                 <th className="p-2 text-right">{t('inventory.stockValue')}</th>
                                 <th className="p-2 text-center">{t('common.status')}</th>
-                               </tr>
+                              </tr>
                             </thead>
                             <tbody>
                               {store.items.map((item: any) => (
@@ -817,7 +823,7 @@ export default function Reports() {
                                       {item.status === "out" ? t('inventory.outOfStockBadge') : item.status === "low" ? t('inventory.lowStockBadge') : "OK"}
                                     </span>
                                   </td>
-                                 </tr>
+                                </tr>
                               ))}
                             </tbody>
                             <tfoot>
