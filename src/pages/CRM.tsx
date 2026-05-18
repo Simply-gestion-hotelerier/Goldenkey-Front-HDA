@@ -38,6 +38,7 @@ import { api } from "@/lib/api";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { useTranslation } from "react-i18next";
+import { GuestProfileSheet } from "./GuestProfileSheet";
 
 interface CrmCustomer {
   id: string;
@@ -91,7 +92,7 @@ const CRM = () => {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem("crmHiddenCustomers", JSON.stringify(hiddenIds)); } catch {}
+    try { localStorage.setItem("crmHiddenCustomers", JSON.stringify(hiddenIds)); } catch { }
   }, [hiddenIds]);
 
   const filteredCustomers = useMemo(() => {
@@ -123,7 +124,7 @@ const CRM = () => {
 
   const prepareExportData = () => {
     const aujourdhui = new Date().toISOString().slice(0, 10);
-    
+
     const donneesClients = filteredCustomers.map((client: CrmCustomer) => ({
       id: client.id,
       nomComplet: client.fullName,
@@ -181,7 +182,7 @@ const CRM = () => {
 
     csvContent += `${t('crm.customers')}\n`;
     csvContent += `${t('common.name')},${t('common.email')},${t('common.phone')},${t('crm.visitCount')},${t('crm.totalSpent')},${t('crm.lastVisit')},${t('crm.source')},${t('common.notes')}\n`;
-    
+
     data.clients.forEach((client: any) => {
       csvContent += `"${client.nomComplet}","${client.email}","${client.telephone}",${client.nombreVisites},${client.montantDepense},"${client.derniereVisite}","${client.source}","${client.notes}"\n`;
     });
@@ -191,7 +192,7 @@ const CRM = () => {
 
   const exportToExcel = (data: any) => {
     const workbook = XLSX.utils.book_new();
-    
+
     const syntheseData = [
       ["CRM REPORT - Hôtel de l'Avenue", ""],
       [t('common.date'), data.metadata.periode],
@@ -275,7 +276,7 @@ ${index + 1}. ${client.nomComplet}
 
     setExportCrmLoading(true);
     setExportCrmOpen(false);
-    
+
     try {
       const data = prepareExportData();
       switch (formatType) {
@@ -560,24 +561,11 @@ ${index + 1}. ${client.nomComplet}
                 ))}
               </div>
 
-              <Dialog open={!!selectedCustomer} onOpenChange={(o) => { if (!o) setSelectedCustomer(null); }}>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>{t('crm.customerProfile')}</DialogTitle>
-                  </DialogHeader>
-                  {selectedCustomer && (
-                    <div className="grid gap-2 py-2 text-sm">
-                      <div className="font-semibold text-lg">{selectedCustomer.fullName}</div>
-                      <div className="flex items-center space-x-2"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedCustomer.email || "—"}</span></div>
-                      <div className="flex items-center space-x-2"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedCustomer.phone || "—"}</span></div>
-                      <div className="flex items-center space-x-2"><Calendar className="h-4 w-4 text-muted-foreground" /><span>{selectedCustomer.visitCount} {t('crm.visitCount')}</span></div>
-                      <div className="flex items-center space-x-2"><Gift className="h-4 w-4 text-muted-foreground" /><span>{new Intl.NumberFormat("fr-FR").format(selectedCustomer.totalSpent)} Ar {t('crm.spent')}</span></div>
-                      <div className="text-muted-foreground">{t('crm.lastVisit')}: {selectedCustomer.lastVisit ? new Date(selectedCustomer.lastVisit).toLocaleString("fr-FR") : t('common.none')}</div>
-                      {selectedCustomer.notes && <div className="text-muted-foreground">{t('common.notes')}: {selectedCustomer.notes}</div>}
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
+              <GuestProfileSheet
+                customerId={selectedCustomer?.id ?? null}
+                open={!!selectedCustomer}
+                onClose={() => setSelectedCustomer(null)}
+              />
             </TabsContent>
 
             <TabsContent value="loyalty" className="space-y-6">
