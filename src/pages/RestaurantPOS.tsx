@@ -17,11 +17,13 @@ import {
   Clock, RefreshCw, MessageSquare, Printer, FileText,
   CheckCircle2, XCircle, Hotel, ChevronDown, ChevronRight, AlertCircle,
   ShoppingBag, ChevronLeft, Info, Hash, Tag, Percent, X, CreditCard,
+  User, Users,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { WaiterAssignment } from "./WaiterAssignment";
 
 // ── Helpers numbers ────────────────────────────────────────────────────────────
 
@@ -554,7 +556,7 @@ function FolioExpandedDetail({
               <td className="p-2 font-medium">Chambre {res.room?.number} ({res.room?.type})</td>
               <td className="p-2">
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">HÔTEL</span>
-                </td>
+              </td>
               <td className="p-2 text-right">{fmt(res.rate)} Ar</td>
               <td className="p-2 text-right">{nights} nuit(s)</td>
               <td className="p-2 text-right font-semibold">{fmt(res.rate * nights)} Ar</td>
@@ -912,7 +914,7 @@ export default function RestaurantPOS() {
   const [table, setTable] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [addingItem, setAddingItem] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"pos" | "folios">("pos");
+  const [activeTab, setActiveTab] = useState<"pos" | "folios" | "waiters">("pos");
   const [newTableCode, setNewTableCode] = useState("");
   const [editingTable, setEditingTable] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -1356,18 +1358,21 @@ export default function RestaurantPOS() {
               <h1 className="text-3xl font-bold">Prise de commande</h1>
               <p className="text-muted-foreground">Tables → Plats → Paiement</p>
             </div>
+
             <div className="flex gap-1 bg-muted rounded-lg p-1">
-              {(["pos", "folios"] as const).map(tab => (
+              {(["pos", "folios", "waiters"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tab
-                      ? "bg-background shadow text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "bg-background shadow text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
-                  <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />
-                  {tab === "pos" ? "Restaurant" : "Folios chambres"}
+                  {tab === "pos" && <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
+                  {tab === "folios" && <Hotel className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
+                  {tab === "waiters" && <Users className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
+                  {tab === "pos" ? "Restaurant" : tab === "folios" ? "Folios chambres" : "Serveurs"}
                 </button>
               ))}
             </div>
@@ -1553,6 +1558,12 @@ export default function RestaurantPOS() {
                                 </div>
                                 {statusBadge(order.status)}
                               </div>
+                              {order.table?.assignedWaiter && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                  <User className="h-3 w-3" />
+                                  Serveur: {order.table.assignedWaiter.name}
+                                </div>
+                              )}
                               <div className="flex items-center justify-between bg-muted/20 rounded px-3 py-1.5 text-xs">
                                 <span className="text-muted-foreground">N° facture</span>
                                 <span className="font-mono font-medium">{invoiceNum}</span>
@@ -1719,6 +1730,16 @@ export default function RestaurantPOS() {
                 })
               )}
             </div>
+          )}
+
+          {activeTab === "waiters" && (
+            <WaiterAssignment
+              tables={tables as any[]}
+              onAssignmentChange={() => {
+                refetchOrders();
+                // Rafraîchir d'autres données si nécessaire
+              }}
+            />
           )}
 
         </main>
