@@ -96,10 +96,10 @@ function FireBadge({ status }: { status: string }) {
 // ── Restaurant info ───────────────────────────────────────────────────────────
 
 const RESTAURANT = {
-  name: "MAHAFALY Hotel",
+  name: "Hôtel de l'Avenue",
   address: "Antsirabe, Madagascar",
   phone: "+261 038 33 188 31",
-  email: "resto@mahafalyhotel.com",
+
 };
 
 const W = 42;
@@ -250,7 +250,7 @@ function print80mm(tableCode: string, order: any) {
 
   lines.push("");
   lines.push(ctr("Merci de votre visite !", W));
-  lines.push(ctr("MAHAFALY Hotel", W));
+  lines.push(ctr("Hôtel de l'Avenue", W));
   lines.push(ctr(new Date().toLocaleString("fr-FR"), W));
   lines.push("");
 

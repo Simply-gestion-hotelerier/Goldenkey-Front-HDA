@@ -31,20 +31,8 @@ const quickActions = [
     action: "inventory",
     variant: "default" as const
   },
-  {
-    title: "Planning Spa",
-    description: "Nouveau RDV",
-    icon: Calendar,
-    action: "spa-booking",
-    variant: "default" as const
-  },
-  {
-    title: "Ajouter Produit",
-    description: "Nouveau article",
-    icon: PlusCircle,
-    action: "add-product",
-    variant: "default" as const
-  },
+
+
   {
     title: "Facture Rapide",
     description: "Génération facture",

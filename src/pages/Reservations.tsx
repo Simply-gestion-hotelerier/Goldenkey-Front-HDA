@@ -107,10 +107,10 @@ const getCardFee = (amount: number) => Math.round(amount * 0.05);
 const getCardTotal = (amount: number) => amount + getCardFee(amount);
 
 const HOTEL = {
-  name: "Mahafaly Hotel",
+  name: "Hôtel de l'Avenue",
   address: "Antsirabe, Madagascar",
   phone: "+261 038 33 188 31",
-  email: "info@mahafalyhotel.com",
+  
   nif: "000000001",
 };
 

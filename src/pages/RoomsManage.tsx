@@ -38,7 +38,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { useTranslation } from "react-i18next";
 
-// ── Types (identiques à HotelCalendarPage) ────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type RoomStatus = "available" | "occupied" | "cleaning" | "maintenance" | "out_of_order";
 type MaintenanceStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -61,7 +61,7 @@ interface RoomMaintenance {
   room?: Room;
 }
 
-// ── Constantes visuelles (même palette que HotelCalendar) ────────────────────
+// ── Constantes visuelles ────────────────────────────────────────────────────
 
 const ROOM_STATUS_META: Record<RoomStatus, { label: string; dot: string; badge: string }> = {
   available: { label: "available", dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" },
@@ -80,18 +80,19 @@ const MAINT_STATUS_META: Record<MaintenanceStatus, { label: string; icon: React.
 
 const ROOM_TYPES = ["Simple", "Double", "Triple", "Familial", "Deluxe", "Suite"];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtDate(d: string, t: any) {
+function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function StatusBadge({ status, t }: { status: RoomStatus; t: any }) {
   const meta = ROOM_STATUS_META[status];
+  const labelKey = `hotel.status${meta.label.charAt(0).toUpperCase() + meta.label.slice(1)}`;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${meta.badge}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-      {t(`hotel.${meta.label}`)}
+      {t(labelKey, meta.label)}
     </span>
   );
 }
@@ -99,15 +100,16 @@ function StatusBadge({ status, t }: { status: RoomStatus; t: any }) {
 function MaintBadge({ status, t }: { status: MaintenanceStatus; t: any }) {
   const meta = MAINT_STATUS_META[status];
   const Icon = meta.icon;
+  const labelKey = `hotelPlan.${meta.label}`;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${meta.badge}`}>
       <Icon className="w-3 h-3" />
-      {t(`hotelPlan.${meta.label}`)}
+      {t(labelKey, meta.label)}
     </span>
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
+// ── Stat card ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, color }: { label: string; value: number; sub?: string; color: string }) {
   return (
@@ -176,7 +178,7 @@ export default function RoomsManage() {
     onSuccess: () => {
       setNewNumber(""); setAddOpen(false);
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
-      toast({ title: t('rooms.roomAdded'), description: `${t('hotel.room')} #${newNumber} ${t('rooms.created')}.` });
+      toast({ title: t('rooms.roomAdded'), description: `${t('hotel.room')} ${newNumber} ${t('rooms.created')}.` });
     },
     onError: (e: any) => toast({ title: t('common.error'), description: String(e), variant: "destructive" }),
   });
@@ -202,7 +204,7 @@ export default function RoomsManage() {
       api.patch(`/hotel/rooms/${id}/status`, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
-      toast({ title: t('common.status') + " " + t('rooms.updated') });
+      toast({ title: `${t('common.status')} ${t('rooms.updated')}` });
     },
     onError: (e: any) => toast({ title: t('common.error'), description: String(e), variant: "destructive" }),
   });
@@ -244,7 +246,7 @@ export default function RoomsManage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hotel", "maintenances"] });
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
-      toast({ title: t('common.status') + " " + t('rooms.updated') });
+      toast({ title: `${t('common.status')} ${t('rooms.updated')}` });
     },
     onError: (e: any) => toast({ title: t('common.error'), description: String(e), variant: "destructive" }),
   });
@@ -283,16 +285,21 @@ export default function RoomsManage() {
 
   const exportData = () => ({
     date: new Date().toLocaleDateString("fr-FR"),
-    rooms: sorted.map(r => ({
-      numero: r.number, type: r.type,
-      statut: t(`hotel.${ROOM_STATUS_META[r.status]?.label ?? r.status}`), id: r.id,
-    })),
+    rooms: sorted.map(r => {
+      const statusLabelKey = `hotel.status${ROOM_STATUS_META[r.status]?.label.charAt(0).toUpperCase() + ROOM_STATUS_META[r.status]?.label.slice(1)}`;
+      return {
+        numero: r.number,
+        type: r.type,
+        statut: t(statusLabelKey, ROOM_STATUS_META[r.status]?.label ?? r.status),
+        id: r.id,
+      };
+    }),
     maintenances: maintenances.map(m => ({
       chambre: rooms.find(r => r.id === m.roomId)?.number ?? m.roomId,
-      debut: fmtDate(m.startDate, t),
-      fin: fmtDate(m.endDate, t),
+      debut: fmtDate(m.startDate),
+      fin: fmtDate(m.endDate),
       motif: m.reason ?? "—",
-      statut: t(`hotelPlan.${MAINT_STATUS_META[m.status]?.label ?? m.status}`),
+      statut: t(`hotelPlan.${MAINT_STATUS_META[m.status]?.label ?? m.status}`, MAINT_STATUS_META[m.status]?.label ?? m.status),
     })),
   });
 
@@ -345,8 +352,8 @@ export default function RoomsManage() {
           {/* ── Titre + actions ── */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">{t('hotel.configuration')}</p>
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('rooms.roomManagement')}</h1>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-0.5">{t('hotel.configuration', 'Configuration')}</p>
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('rooms.roomManagement', 'Room Management')}</h1>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -368,7 +375,7 @@ export default function RoomsManage() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setExportOpen(false)} />
                     <div className="absolute right-0 top-full mt-1 w-52 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 pt-2.5 pb-1.5">{t('export.formats')}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 pt-2.5 pb-1.5">{t('export.formats', 'Formats')}</p>
                       {[
                         { fmt: "excel", label: t('export.excel'), ext: ".xlsx", Icon: FileSpreadsheet, color: "text-emerald-600" },
                         { fmt: "csv", label: t('export.csv'), ext: ".csv", Icon: TableIcon, color: "text-blue-600" },
@@ -384,7 +391,7 @@ export default function RoomsManage() {
                         </button>
                       ))}
                       <div className="border-t border-border px-3 py-2">
-                        <p className="text-[10px] text-muted-foreground">{rooms.length} {t('rooms.roomsCount')} · {new Date().toLocaleDateString("fr-FR")}</p>
+                        <p className="text-[10px] text-muted-foreground">{rooms.length} {t('rooms.roomsCount', 'rooms')} · {new Date().toLocaleDateString("fr-FR")}</p>
                       </div>
                     </div>
                   </>
@@ -401,18 +408,20 @@ export default function RoomsManage() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{t('rooms.scheduleMaintenance')}</DialogTitle>
+                    <DialogTitle>{t('rooms.scheduleMaintenance', 'Schedule maintenance')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="space-y-1.5">
                       <Label>{t('hotel.room')}</Label>
                       <Select value={maintRoomId} onValueChange={setMaintRoomId}>
-                        <SelectTrigger><SelectValue placeholder={t('hotel.selectRoom')} /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t('hotel.selectRoom', 'Select a room')} /></SelectTrigger>
                         <SelectContent>
                           {sorted.map(r => (
                             <SelectItem key={r.id} value={String(r.id)}>
                               #{r.number} — {r.type}
-                              <span className="ml-2 text-xs text-muted-foreground">({t(`hotel.${ROOM_STATUS_META[r.status]?.label ?? r.status}`)})</span>
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({t(`hotel.status${ROOM_STATUS_META[r.status]?.label.charAt(0).toUpperCase() + ROOM_STATUS_META[r.status]?.label.slice(1)}`, ROOM_STATUS_META[r.status]?.label)})
+                              </span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -420,28 +429,28 @@ export default function RoomsManage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label>{t('rooms.startDate')}</Label>
+                        <Label>{t('rooms.startDate', 'Start date')}</Label>
                         <Input type="date" value={maintStart} onChange={e => setMaintStart(e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
-                        <Label>{t('rooms.endDate')}</Label>
+                        <Label>{t('rooms.endDate', 'End date')}</Label>
                         <Input type="date" value={maintEnd} onChange={e => setMaintEnd(e.target.value)} />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>{t('rooms.initialStatus')}</Label>
+                      <Label>{t('rooms.initialStatus', 'Initial status')}</Label>
                       <Select value={maintStatus} onValueChange={v => setMaintStatus(v as MaintenanceStatus)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(Object.entries(MAINT_STATUS_META) as [MaintenanceStatus, any][]).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{t(`hotelPlan.${v.label}`)}</SelectItem>
+                            <SelectItem key={k} value={k}>{t(`hotelPlan.${v.label}`, v.label)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>{t('rooms.reason')} <span className="text-muted-foreground">({t('common.optional')})</span></Label>
-                      <Textarea rows={2} placeholder={t('rooms.reasonPlaceholder')}
+                      <Label>{t('rooms.reason', 'Reason')} <span className="text-muted-foreground">({t('common.optional', 'Optional')})</span></Label>
+                      <Textarea rows={2} placeholder={t('rooms.reasonPlaceholder', 'Plumbing, painting, air conditioning…')}
                         value={maintReason} onChange={e => setMaintReason(e.target.value)} />
                     </div>
                   </div>
@@ -449,7 +458,7 @@ export default function RoomsManage() {
                     <Button variant="ghost" onClick={() => setMaintOpen(false)}>{t('common.cancel')}</Button>
                     <Button onClick={() => addMaintenance.mutate()}
                       disabled={!maintRoomId || !maintStart || !maintEnd || addMaintenance.isPending}>
-                      {addMaintenance.isPending ? t('common.loading') : t('rooms.createMaintenance')}
+                      {addMaintenance.isPending ? t('common.loading') : t('rooms.createMaintenance', 'Create maintenance')}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -460,16 +469,16 @@ export default function RoomsManage() {
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
-                    {t('rooms.add')}
+                    {t('rooms.add', 'Add')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>{t('rooms.addRoom')}</DialogTitle>
+                    <DialogTitle>{t('rooms.addRoom', 'Add room')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="space-y-1.5">
-                      <Label>{t('rooms.number')}</Label>
+                      <Label>{t('rooms.number', 'Number')}</Label>
                       <Input placeholder="ex: 121" value={newNumber} onChange={e => setNewNumber(e.target.value)} />
                     </div>
                     <div className="space-y-1.5">
@@ -482,12 +491,12 @@ export default function RoomsManage() {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>{t('rooms.initialStatus')}</Label>
+                      <Label>{t('rooms.initialStatus', 'Initial status')}</Label>
                       <Select value={newStatus} onValueChange={v => setNewStatus(v as RoomStatus)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(Object.entries(ROOM_STATUS_META) as [RoomStatus, any][]).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{t(`hotel.${v.label}`)}</SelectItem>
+                            <SelectItem key={k} value={k}>{t(`hotel.status${v.label.charAt(0).toUpperCase() + v.label.slice(1)}`, v.label)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -496,7 +505,7 @@ export default function RoomsManage() {
                   <DialogFooter>
                     <Button variant="ghost" onClick={() => setAddOpen(false)}>{t('common.cancel')}</Button>
                     <Button onClick={() => addRoom.mutate()} disabled={!newNumber || addRoom.isPending}>
-                      {addRoom.isPending ? t('common.loading') : t('rooms.add')}
+                      {addRoom.isPending ? t('common.loading') : t('rooms.add', 'Add')}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -507,29 +516,29 @@ export default function RoomsManage() {
                 <DialogTrigger asChild>
                   <Button variant="secondary" size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
-                    {t('rooms.bulk')}
+                    {t('rooms.bulk', 'Range')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>{t('rooms.bulkAdd')}</DialogTitle>
+                    <DialogTitle>{t('rooms.bulkAdd', 'Bulk add')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label>{t('rooms.start')}</Label>
+                        <Label>{t('rooms.start', 'Start')}</Label>
                         <Input type="number" min={1} value={bulkStart}
                           onChange={e => setBulkStart(Number(e.target.value))} />
                       </div>
                       <div className="space-y-1.5">
-                        <Label>{t('rooms.end')}</Label>
+                        <Label>{t('rooms.end', 'End')}</Label>
                         <Input type="number" min={1} value={bulkEnd}
                           onChange={e => setBulkEnd(Number(e.target.value))} />
                       </div>
                     </div>
                     {bulkEnd >= bulkStart && (
                       <p className="text-xs text-muted-foreground">
-                        {bulkEnd - bulkStart + 1} {t('rooms.roomsWillBeCreated')} (#{bulkStart} → #{bulkEnd})
+                        {bulkEnd - bulkStart + 1} {t('rooms.roomsWillBeCreated', 'rooms will be created')} (#{bulkStart} → #{bulkEnd})
                       </p>
                     )}
                     <div className="space-y-1.5">
@@ -546,7 +555,7 @@ export default function RoomsManage() {
                     <Button variant="ghost" onClick={() => setBulkOpen(false)}>{t('common.cancel')}</Button>
                     <Button onClick={() => bulkAdd.mutate()}
                       disabled={bulkEnd < bulkStart || bulkAdd.isPending}>
-                      {bulkAdd.isPending ? t('common.loading') : t('rooms.createRange')}
+                      {bulkAdd.isPending ? t('common.loading') : t('rooms.createRange', 'Create range')}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -556,12 +565,12 @@ export default function RoomsManage() {
 
           {/* ── Stats cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard label={t('rooms.total')} value={stats.total} color="text-foreground" />
+            <StatCard label={t('rooms.total', 'Total')} value={stats.total} color="text-foreground" />
             <StatCard label={t('hotel.available')} value={stats.available} color="text-emerald-500" sub={`${Math.round(stats.available / Math.max(stats.total, 1) * 100)}%`} />
             <StatCard label={t('hotel.occupied')} value={stats.occupied} color="text-blue-500" />
             <StatCard label={t('hotel.cleaning')} value={stats.cleaning} color="text-amber-500" />
             <StatCard label={t('hotel.maintenance')} value={stats.maintenance} color="text-red-500"
-              sub={`${maintStats.active} ${t('rooms.inProgress')} · ${maintStats.scheduled} ${t('rooms.scheduled')}`} />
+              sub={`${maintStats.active} ${t('rooms.inProgress', 'in progress')} · ${maintStats.scheduled} ${t('rooms.scheduled', 'scheduled')}`} />
           </div>
 
           {/* ── Tabs ── */}
@@ -569,12 +578,12 @@ export default function RoomsManage() {
             <TabsList className="mb-4">
               <TabsTrigger value="rooms" className="gap-2">
                 <BedDouble className="h-4 w-4" />
-                {t('rooms.rooms')}
+                {t('rooms.rooms', 'Rooms')}
                 <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px]">{rooms.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="maintenances" className="gap-2">
                 <Wrench className="h-4 w-4" />
-                {t('rooms.maintenances')}
+                {t('rooms.maintenances', 'Maintenances')}
                 <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-4 text-[10px]">{maintenances.length}</Badge>
               </TabsTrigger>
             </TabsList>
@@ -583,7 +592,7 @@ export default function RoomsManage() {
             <TabsContent value="rooms">
               <Card>
                 <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-sm font-semibold">{rooms.length} {t('rooms.rooms')}</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{rooms.length} {t('rooms.rooms', 'Rooms')}</CardTitle>
                   <div className="flex items-center gap-1">
                     <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="icon" className="h-7 w-7"
                       onClick={() => setViewMode("table")}>
@@ -605,10 +614,10 @@ export default function RoomsManage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-20">{t('rooms.number')}</TableHead>
+                          <TableHead className="w-20">{t('rooms.number', 'Number')}</TableHead>
                           <TableHead>{t('hotel.type')}</TableHead>
                           <TableHead>{t('common.status')}</TableHead>
-                          <TableHead className="w-52">{t('rooms.changeStatus')}</TableHead>
+                          <TableHead className="w-52">{t('rooms.changeStatus', 'Change status')}</TableHead>
                           <TableHead className="w-16 text-right">{t('common.actions')}</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -628,7 +637,9 @@ export default function RoomsManage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {(Object.entries(ROOM_STATUS_META) as [RoomStatus, any][]).map(([k, v]) => (
-                                    <SelectItem key={k} value={k} className="text-xs">{t(`hotel.${v.label}`)}</SelectItem>
+                                    <SelectItem key={k} value={k} className="text-xs">
+                                      {t(`hotel.status${v.label.charAt(0).toUpperCase() + v.label.slice(1)}`, v.label)}
+                                    </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -663,12 +674,14 @@ export default function RoomsManage() {
                               <SelectTrigger className="h-6 text-[10px] px-2">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                                  <span>{t(`hotel.${meta.label}`)}</span>
+                                  <span>{t(`hotel.status${meta.label.charAt(0).toUpperCase() + meta.label.slice(1)}`, meta.label)}</span>
                                 </div>
                               </SelectTrigger>
                               <SelectContent>
                                 {(Object.entries(ROOM_STATUS_META) as [RoomStatus, any][]).map(([k, v]) => (
-                                  <SelectItem key={k} value={k} className="text-xs">{t(`hotel.${v.label}`)}</SelectItem>
+                                  <SelectItem key={k} value={k} className="text-xs">
+                                    {t(`hotel.status${v.label.charAt(0).toUpperCase() + v.label.slice(1)}`, v.label)}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -685,7 +698,7 @@ export default function RoomsManage() {
             <TabsContent value="maintenances">
               <Card>
                 <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-semibold">{maintenances.length} {t('rooms.maintenances')}</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{maintenances.length} {t('rooms.maintenances', 'Maintenances')}</CardTitle>
                 </CardHeader>
                 <Separator />
                 <CardContent className="p-0">
@@ -696,9 +709,9 @@ export default function RoomsManage() {
                   ) : maintenances.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
                       <Wrench className="h-8 w-8 opacity-30" />
-                      <p className="text-sm">{t('rooms.noMaintenances')}</p>
+                      <p className="text-sm">{t('rooms.noMaintenances', 'No maintenance recorded')}</p>
                       <Button variant="outline" size="sm" className="mt-2 gap-2" onClick={() => setMaintOpen(true)}>
-                        <Plus className="h-3.5 w-3.5" /> {t('rooms.scheduleMaintenance')}
+                        <Plus className="h-3.5 w-3.5" /> {t('rooms.scheduleMaintenance', 'Schedule maintenance')}
                       </Button>
                     </div>
                   ) : (
@@ -706,11 +719,11 @@ export default function RoomsManage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-20">{t('hotel.room')}</TableHead>
-                          <TableHead>{t('rooms.reason')}</TableHead>
-                          <TableHead>{t('rooms.start')}</TableHead>
-                          <TableHead>{t('rooms.end')}</TableHead>
+                          <TableHead>{t('rooms.reason', 'Reason')}</TableHead>
+                          <TableHead>{t('rooms.start', 'Start')}</TableHead>
+                          <TableHead>{t('rooms.end', 'End')}</TableHead>
                           <TableHead>{t('common.status')}</TableHead>
-                          <TableHead className="w-52">{t('rooms.changeStatus')}</TableHead>
+                          <TableHead className="w-52">{t('rooms.changeStatus', 'Change status')}</TableHead>
                           <TableHead className="w-16 text-right">{t('common.actions')}</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -727,8 +740,8 @@ export default function RoomsManage() {
                                 <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
                                   {mx.reason ?? <span className="italic opacity-50">—</span>}
                                 </TableCell>
-                                <TableCell className="text-sm tabular-nums">{fmtDate(mx.startDate, t)}</TableCell>
-                                <TableCell className="text-sm tabular-nums">{fmtDate(mx.endDate, t)}</TableCell>
+                                <TableCell className="text-sm tabular-nums">{fmtDate(mx.startDate)}</TableCell>
+                                <TableCell className="text-sm tabular-nums">{fmtDate(mx.endDate)}</TableCell>
                                 <TableCell><MaintBadge status={mx.status} t={t} /></TableCell>
                                 <TableCell>
                                   <Select value={mx.status}
@@ -738,7 +751,7 @@ export default function RoomsManage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       {(Object.entries(MAINT_STATUS_META) as [MaintenanceStatus, any][]).map(([k, v]) => (
-                                        <SelectItem key={k} value={k} className="text-xs">{t(`hotelPlan.${v.label}`)}</SelectItem>
+                                        <SelectItem key={k} value={k} className="text-xs">{t(`hotelPlan.${v.label}`, v.label)}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -768,9 +781,11 @@ export default function RoomsManage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('rooms.deleteRoomConfirm', { number: deleteTarget?.number })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('rooms.deleteRoomConfirm', `Delete room ${deleteTarget?.number}?`, { number: deleteTarget?.number })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('rooms.deleteRoomWarning')}
+              {t('rooms.deleteRoomWarning', 'This action is irreversible. The room will be permanently deleted.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -787,13 +802,13 @@ export default function RoomsManage() {
       <AlertDialog open={!!deleteMTarget} onOpenChange={o => !o && setDeleteMTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('rooms.deleteMaintenanceConfirm')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('rooms.deleteMaintenanceConfirm', 'Delete this maintenance?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteMTarget?.reason
                 ? `« ${deleteMTarget.reason} » — `
                 : ""}
-              {deleteMTarget && `${t('rooms.from')} ${fmtDate(deleteMTarget.startDate, t)} ${t('rooms.to')} ${fmtDate(deleteMTarget.endDate, t)}`}
-              <br />{t('rooms.deleteMaintenanceWarning')}
+              {deleteMTarget && `${t('rooms.from', 'from')} ${fmtDate(deleteMTarget.startDate)} ${t('rooms.to', 'to')} ${fmtDate(deleteMTarget.endDate)}`}
+              <br />{t('rooms.deleteMaintenanceWarning', 'This action is irreversible.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
