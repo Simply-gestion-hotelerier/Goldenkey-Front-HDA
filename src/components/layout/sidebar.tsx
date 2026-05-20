@@ -123,11 +123,11 @@ export function Sidebar() {
         <div className="flex items-center gap-3 pl-4 group w-full">
           <img 
             src={logoSrc} 
-            alt="Mahafaly Hôtel Logo" 
+            alt="Hôtel de l'Avenue Logo" 
             className="h-12 w-12 object-contain rounded-lg transition-transform group-hover:scale-110"
           />
           <div className="flex items-center justify-between w-full pr-4">
-            <h1 className="text-lg font-bold text-foreground">Mahafaly Hôtel</h1>
+            <h1 className="text-lg font-bold text-foreground">Hôtel de l'Avenue</h1>
           </div>
         </div>
       </div>
