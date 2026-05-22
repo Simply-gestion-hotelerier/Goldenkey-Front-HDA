@@ -3,7 +3,7 @@ import { useAuth, Role } from '@/lib/role'; // Import depuis votre fichier RBAC
 
 const roles: Role[] = [
   'admin', 'manager', 'reception', 'housekeeping', 'serveur', 
-  'cuisine', 'bar', 'spa', 'compta'
+  'cuisine', 'bar', 'compta'
 ];
 
 const roleLabels: Record<Role, string> = {
@@ -14,7 +14,6 @@ const roleLabels: Record<Role, string> = {
   serveur: "Serveur",
   cuisine: "Cuisine",
   bar: "Bar",
-  spa: "Spa",
   compta: "Comptabilité"
 };
 

@@ -19,7 +19,7 @@ export default function Cash() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [dept, setDept] = useState<'hotel' | 'restaurant' | 'pub' | 'spa'>('restaurant');
+  const [dept, setDept] = useState<'hotel' | 'restaurant' | 'pub' >('restaurant');
   const [opening, setOpening] = useState<number>(50000);
   const [closing, setClosing] = useState<number>(0);
   const [transactionAmount, setTransactionAmount] = useState<string>("");

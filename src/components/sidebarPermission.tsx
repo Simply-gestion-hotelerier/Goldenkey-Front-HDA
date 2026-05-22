@@ -4,13 +4,12 @@ export const roleRoutes: Record<string, string[]> = {
     "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/pub", "/pub/menu", "/bar", "/bar/pos",
-    "/spa", "/spa/agenda",
     "/crm", "/inventory", "/invoices/daily", "/invoices/client", "/cash", "/reports", "/housekeeping",
     "/notifications", "/settings"
   ],
   MANAGER: [
     "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
-    "/restaurant", "/restaurant/menu", "/pub", "/bar", "/spa", "/spa/agenda",
+    "/restaurant", "/restaurant/menu", "/pub", "/bar",
     "/crm", "/inventory", "/invoices/daily", "/invoices/client", "/cash", "/reports",
     "/notifications"
   ],

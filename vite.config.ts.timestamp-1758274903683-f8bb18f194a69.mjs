@@ -13,7 +13,7 @@ var vite_config_default = defineConfig(({ mode }) => ({
       "/hotel": { target: "http://localhost:4000", changeOrigin: true },
       "/restaurant": { target: "http://localhost:4000", changeOrigin: true },
       "/bar": { target: "http://localhost:4000", changeOrigin: true },
-      "/spa": { target: "http://localhost:4000", changeOrigin: true },
+      
       "/cash": { target: "http://localhost:4000", changeOrigin: true },
       "/invoices": { target: "http://localhost:4000", changeOrigin: true },
       "/reports": { target: "http://localhost:4000", changeOrigin: true },

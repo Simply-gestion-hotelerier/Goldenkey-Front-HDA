@@ -49,7 +49,7 @@ interface CrmCustomer {
   visitCount: number;
   lastVisit?: string | null;
   totalSpent: number;
-  source?: "hotel" | "spa" | "bar" | "restaurant";
+  source?: "hotel"  | "bar" | "restaurant";
 }
 
 const CRM = () => {
@@ -115,7 +115,7 @@ const CRM = () => {
   const getSourceLabel = (source?: string) => {
     const labels: Record<string, string> = {
       hotel: t('crm.sourceHotel'),
-      spa: t('crm.sourceSpa'),
+
       bar: t('crm.sourceBar'),
       restaurant: t('crm.sourceRestaurant')
     };
@@ -174,7 +174,7 @@ const CRM = () => {
     csvContent += `${t('export.title')}: ${data.metadata.exportDate}\n`;
     csvContent += `${t('crm.totalCustomers')}: ${data.metadata.totalClients}\n\n`;
 
-    csvContent += `${t('crm.loyalty')}\n`;
+
     csvContent += `${t('crm.totalCustomers')},${data.statistiques.totalClients}\n`;
     csvContent += `${t('crm.totalVisits')},${data.statistiques.totalVisites}\n`;
     csvContent += `${t('crm.totalSpent')},${data.statistiques.depenseTotaleFormate}\n`;
@@ -199,7 +199,7 @@ const CRM = () => {
       [t('export.title'), data.metadata.exportDate],
       [t('crm.totalCustomers'), data.metadata.totalClients],
       ["", ""],
-      [t('crm.loyalty'), ""],
+    
       [t('crm.totalCustomers'), data.statistiques.totalClients],
       [t('crm.totalVisits'), data.statistiques.totalVisites],
       [t('crm.totalSpent'), data.statistiques.depenseTotale],
@@ -468,7 +468,7 @@ ${index + 1}. ${client.nomComplet}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="customers">{t('crm.customers')}</TabsTrigger>
-              <TabsTrigger value="loyalty">{t('crm.loyalty')}</TabsTrigger>
+            
               <TabsTrigger value="marketing">{t('crm.marketing')}</TabsTrigger>
               <TabsTrigger value="analytics">{t('crm.analytics')}</TabsTrigger>
             </TabsList>

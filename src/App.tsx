@@ -10,11 +10,11 @@ import { ReactNode, useState } from "react";
 import Index from "./pages/Index";
 import Hotel from "./pages/Hotel";
 import Restaurant from "./pages/Restaurant";
-import Spa from "./pages/Spa";
+
 import NotFound from "./pages/NotFound";
 import HotelPlan from "./pages/HotelPlan";
 import RestaurantKDS from "./pages/RestaurantKDS";
-import SpaAgenda from "./pages/SpaAgenda";
+
 import Inventory from "./pages/Inventory";
 import Cash from "./pages/Cash";
 import Reports from "./pages/Reports";
@@ -46,12 +46,12 @@ const roleAccess: Record<Role, string[]> = {
   admin: [
     "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
-    "/pub", "/pub/menu", "/bar", "/bar/pos", "/spa", "/spa/agenda",
+    "/pub", "/pub/menu", "/bar", "/bar/pos", 
     "/crm", "/inventory", "/invoices/daily", "/cash", "/reports",
     "/housekeeping", "/notifications", "/settings", "/team" , "/room-inspection", "/invoices/client"
   ],
   manager: [
-    "/hotel", "/reservations", "/restaurant", "/pub", "/spa",
+    "/hotel", "/reservations", "/restaurant", "/pub",
     "/crm", "/reports", "/notifications", "/settings", "/cash",
     "/invoices/daily", "/housekeeping", "/room-inspection"
   ],
@@ -70,9 +70,7 @@ const roleAccess: Record<Role, string[]> = {
   bar: [
     "/pub", "/bar", "/bar/pos", "/notifications", "/settings"
   ],
-  spa: [
-    "/spa", "/spa/agenda", "/notifications", "/settings"
-  ],
+ 
   compta: [
     "/cash", "/invoices/daily", "/reports", "/notifications", "/settings"
   ]
@@ -173,8 +171,8 @@ const AuthenticatedRoutes = () => (
       <Route path="/restaurant/kds" element={<RestaurantKDS />} />
       <Route path="/restaurant/pos" element={<RestaurantPOS />} />
       <Route path="/restaurant/menu" element={<RestaurantMenu />} />
-      <Route path="/spa" element={<Spa />} />
-      <Route path="/spa/agenda" element={<SpaAgenda />} />
+      
+     
       <Route path="/crm" element={<CRM />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/invoices/client" element={<GuestInvoice />} />

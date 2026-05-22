@@ -95,8 +95,6 @@
     "pos": "POS",
     "menu": "Menu",
     "kds": "Cuisine KDS",
-    "spa": "Spa & Nail Bar",
-    "spaAgenda": "Agenda Spa",
     "crm": "CRM & Clients",
     "inventory": "Inventaire",
     "dailyInvoice": "Facture Journalière",
@@ -289,15 +287,15 @@
     "ofRestaurantRevenue": "du CA Restaurant",
     "paymentBreakdown": "Répartition des paiements",
     "hotelReservationsPeriod": "Réservations Hôtel (période)",
-    "spaServices": "Prestations Spa",
+ 
     "serviceCount": "Nombre de prestations",
     "totalServices": "Total prestations",
-    "ofSpaRevenue": "du CA Spa",
+
     "hotelName": "Hôtel de l'Avenue — Rapport",
     "printedAt": "Imprimé le",
     "restaurantSales": "Ventes Restaurant",
     "hotelSales": "Ventes Hôtel",
-    "spaSales": "Ventes Spa",
+  
     "grandTotal": "Total général",
     "restaurantBarOrders": "Restaurant & Bar — Commandes",
     "total": "Total",
@@ -329,7 +327,7 @@
     "booked": "Réservé",
     "totals": "Totaux",
     "completed": "Terminées",
-    "spaRevenue": "CA Spa",
+
     "selectPeriod": "Sélectionnez une période pour afficher les rapports",
     "due": "dû",
     "footer": "Système de gestion hôtelière — Document généré automatiquement",
@@ -638,7 +636,7 @@
     "hotel": "Hôtel",
     "restaurant": "Restaurant",
     "pub": "Pub / Bar",
-    "spa": "Spa",
+   
     "occupancyRate": "Taux d'occupation",
     "arrivals": "Arrivées",
     "departures": "Départs",
@@ -690,27 +688,15 @@
     "hotelInvoice": "HÔTEL",
     "restaurantInvoice": "RESTAURANT",
     "pubInvoice": "PUB / BAR",
-    "spaInvoice": "SPA",
+  
     "dailyInvoiceTitle": "*** FACTURE JOURNALIÈRE ***"
   },
 
-  "spa": {
-    "subtitle": "Planning • Prestations • Stock • Paiements",
-    "services": "Prestations",
-    "startTime": "Heure début",
-    "duration": "Durée",
-    "price": "Prix",
-    "statusBooked": "Confirmé",
-    "statusInProgress": "En cours",
-    "statusCompleted": "Terminé",
-    "statusNoShow": "Absent",
-    "statusCancelled": "Annulé",
-    "hotelName": "Hôtel de l'Avenue  - Spa & Nail Bar"
-  },
+ 
 
   "restaurant": {
     "subtitle": "Commandes • Cuisine • Inventaire • Caisse",
-    "hotelName": "Hôtel de l'Avenue  - Spa & Nail Bar",
+    "hotelName": "Hôtel de l'Avenue  -  Nail Bar",
     "table": "Table",
     "order": "Commande",
     "close": "Fermer",
@@ -801,7 +787,7 @@
     "deleteWarning": "Cette action est irréversible. Le client sera définitivement supprimé.",
     "hideWarning": "Ce client sera masqué de la liste. Vous pourrez le réafficher plus tard.",
     "sourceHotel": "Hôtel",
-    "sourceSpa": "Spa",
+   
     "sourceBar": "Bar",
     "sourceRestaurant": "Restaurant",
     "loadingError": "Erreur de chargement des clients",
@@ -840,7 +826,7 @@
     "occupiedRooms": "Chambres occupées",
     "restaurantTables": "Tables Restaurant",
     "barTables": "Tables Bar",
-    "spaAppointments": "Rendez-vous Spa du jour",
+ 
     "reportAndAnalysis": "Rapports & Analyse des données"
   },
 
@@ -887,7 +873,7 @@
     "order": "Commande",
     "items": "article(s)",
     "serviceCompleted": "Prestation Terminée",
-    "spaAppointment": "RDV Spa",
+
     "stockMovement": "Stock {{type}}",
     "in": "Entrée",
     "out": "Sortie",

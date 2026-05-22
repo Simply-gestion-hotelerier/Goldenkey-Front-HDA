@@ -10,8 +10,7 @@ export const translations = {
       pos: "POS Restaurant",
       // pub: "Pub/Bar",
       bar: "Bar Display",
-      spa: "Spa & Onglerie",
-      agenda: "Agenda Spa",
+     
       inventory: "Inventaire",
       cash: "Caisse",
       reports: "Rapports",
@@ -37,7 +36,7 @@ export const translations = {
         roomsOcc: "Chambres Occupées",
         tablesResto: "Tables Restaurant",
         barTables: "Bar - Tables",
-        spaToday: "RDV Spa Aujourd'hui",
+      
       },
     },
   },
@@ -52,8 +51,6 @@ export const translations = {
       pos: "Restaurant POS",
       // pub: "Pub/Bar",
       bar: "Bar Display",
-      spa: "Spa & Nails",
-      agenda: "Spa Agenda",
       inventory: "Inventory",
       cash: "Cash Desk",
       reports: "Reports",
@@ -79,7 +76,7 @@ export const translations = {
         roomsOcc: "Occupied Rooms",
         tablesResto: "Restaurant Tables",
         barTables: "Bar - Tables",
-        spaToday: "Spa Appointments Today",
+
       },
     },
   },

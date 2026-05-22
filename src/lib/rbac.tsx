@@ -3,7 +3,7 @@ import { api } from './api';
 
 export type Role =
   | 'admin' | 'manager' | 'reception' | 'housekeeping'
-  | 'serveur' | 'cuisine' | 'bar' | 'spa' | 'compta';
+  | 'serveur' | 'cuisine' | 'bar'  | 'compta';
 
 type BackendRole =
   | 'ADMIN' | 'MANAGER' | 'RECEPTION' | 'HOUSEKEEPING'

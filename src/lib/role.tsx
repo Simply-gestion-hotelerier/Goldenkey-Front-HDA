@@ -1,11 +1,11 @@
 // lib/role.ts
-export type Role = 'admin' | 'manager' | 'reception' | 'housekeeping' | 'serveur' | 'cuisine' | 'bar' | 'spa' | 'compta';
+export type Role = 'admin' | 'manager' | 'reception' | 'housekeeping' | 'serveur' | 'cuisine' | 'bar' | 'compta';
 
 export const roleAccess: Record<Role, string[]> = {
   admin: [
     "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
-    "/pub", "/pub/menu", "/bar", "/bar/pos", "/spa", "/spa/agenda",
+    "/pub", "/pub/menu", "/bar", "/bar/pos", "/agenda",
     "/crm", "/inventory" ,"/invoices/daily", "/invoices/client", "/cash", "/reports", 
     "/housekeeping", "/notifications", "/settings", "/team"
   ],
@@ -27,11 +27,9 @@ export const roleAccess: Record<Role, string[]> = {
   compta: [
     "/cash", "/invoices/daily", "/notifications"
   ],
-  spa: [
-  "/spa", "/spa/agenda", "/notifications"
-  ],
+
   manager: [
-    "/hotel", "/reservations", "/restaurant", "/pub", "/spa",
+    "/hotel", "/reservations", "/restaurant", "/pub",
     "/crm", "/reports", "/notifications", "/settings"
   ]
 };

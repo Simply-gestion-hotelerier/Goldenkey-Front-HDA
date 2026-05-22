@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-export type Department = "hotel" | "restaurant" | "pub" | "spa";
+export type Department = "hotel" | "restaurant" | "pub";
 
 export type RoomStatus = "occupied" | "clean" | "dirty" | "inspected" | "out-of-order";
 
@@ -275,7 +275,7 @@ const seedStores: Store[] = [
   { id: 1, name: "Magasin Hôtel", department: "hotel" },
   { id: 2, name: "Cuisine", department: "restaurant" },
   { id: 3, name: "Bar", department: "pub" },
-  { id: 4, name: "Spa", department: "spa" },
+
 ];
 
 const seedItems: Item[] = [
@@ -283,7 +283,7 @@ const seedItems: Item[] = [
   { id: itid++, sku: "POU-001", name: "Poulet", unit: "kg", vat_rate: 20, cost_price: 9000, sale_price_default: 0, is_active: true },
   { id: itid++, sku: "BIER-DRF", name: "Bière pression", unit: "cl", vat_rate: 20, cost_price: 300, sale_price_default: 7000, is_active: true },
   { id: itid++, sku: "VNRG-075", name: "Vin rouge 75cl", unit: "piece", vat_rate: 20, cost_price: 25000, sale_price_default: 18000, is_active: true },
-  { id: itid++, sku: "SAVON-SPA", name: "Huile massage", unit: "ml", vat_rate: 20, cost_price: 50, sale_price_default: 0, is_active: true },
+  
 ];
 
 const seedStocks: Stock[] = [
@@ -291,9 +291,8 @@ const seedStocks: Stock[] = [
   { id: stid++, store_id: 2, item_id: seedItems[1].id, qty_on_hand: 30, min_level: 10, max_level: 100 },
   { id: stid++, store_id: 3, item_id: seedItems[2].id, qty_on_hand: 120, min_level: 50, max_level: 500 },
   { id: stid++, store_id: 3, item_id: seedItems[3].id, qty_on_hand: 18, min_level: 10, max_level: 50 },
-  { id: stid++, store_id: 4, item_id: seedItems[4].id, qty_on_hand: 2000, min_level: 500, max_level: 5000 },
+  // Supprimez la ligne qui utilise seedItems[4]
 ];
-
 const seedCashSessions: CashSession[] = [
   { id: csid++, department_id: "restaurant", opened_by: "Manager", opened_at: nowIso(), opening_float: 50000, status: "open" },
 ];

@@ -155,7 +155,7 @@ export function GuestProfileSheet({ customerId, open, onClose }: Props) {
                       <span className="text-primary">{fmt(profile.stats.totalSpent)}</span>
                     </div>
                     <Separator />
-                    <div className="space-y-2">
+                    <div className="space-y-2">Programme Or
                       {[
                         { label: "Hôtel", value: profile.stats.hotelSpent, visits: profile.stats.totalStays, icon: "🏨" },
                         { label: "Spa", value: profile.stats.spaSpent, visits: profile.stats.totalSpaVisits, icon: "💆" },
@@ -172,7 +172,7 @@ export function GuestProfileSheet({ customerId, open, onClose }: Props) {
                       <>
                         <Separator />
                         <div className="flex justify-between">
-                          <span>Points fidélité</span>
+                          <span>Points  </span>
                           <span className="font-medium">{profile.guest.loyaltyPoints} pts</span>
                         </div>
                       </>
@@ -238,27 +238,6 @@ export function GuestProfileSheet({ customerId, open, onClose }: Props) {
               )}
             </TabsContent>
 
-            {/* ── Spa ── */}
-            <TabsContent value="spa" className="space-y-4 mt-4">
-              {profile.spaHistory.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-8">Aucune visite spa</p>
-              ) : (
-                profile.spaHistory.map((a) => (
-                  <Card key={a.id}>
-                    <CardContent className="pt-4 flex items-center justify-between text-sm">
-                      <div>
-                        <div className="font-medium">{a.serviceName}</div>
-                        <div className="text-muted-foreground">{fmtDate(a.start)}{a.room ? ` · Cabine ${a.room}` : ""}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">{fmt(a.price)}</div>
-                        <Badge variant="outline" className="capitalize text-xs">{a.status}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
 
             {/* ── Bar ── */}
             <TabsContent value="bar" className="space-y-4 mt-4">
