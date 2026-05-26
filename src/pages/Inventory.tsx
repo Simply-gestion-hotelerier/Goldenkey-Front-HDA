@@ -237,51 +237,51 @@ export default function Inventory() {
     [sortedStocksByStore, items]
   );
 
-// REQUÊTE DÉDIÉE POUR LES MAGASINS - AJOUTEZ CECI
-const { data: storeList = [], isLoading: storesLoading } = useQuery({
-  queryKey: ["stores-list"],
-  queryFn: async () => {
-    try {
-      console.log("Chargement des magasins...");
-      // Essayez différents endpoints
-      let response;
+  // REQUÊTE DÉDIÉE POUR LES MAGASINS - AJOUTEZ CECI
+  const { data: storeList = [], isLoading: storesLoading } = useQuery({
+    queryKey: ["stores-list"],
+    queryFn: async () => {
       try {
-        response = await api.get("/inventory/stores");
-        console.log("Réponse /inventory/stores:", response);
-      } catch (e) {
-        console.log("/inventory/stores a échoué, essai /stores");
+        console.log("Chargement des magasins...");
+        // Essayez différents endpoints
+        let response;
         try {
-          response = await api.get("/stores");
-          console.log("Réponse /stores:", response);
-        } catch (e2) {
-          console.log("/stores a échoué, essai /api/stores");
-          response = await api.get("/api/stores");
-          console.log("Réponse /api/stores:", response);
+          response = await api.get("/inventory/stores");
+          console.log("Réponse /inventory/stores:", response);
+        } catch (e) {
+          console.log("/inventory/stores a échoué, essai /stores");
+          try {
+            response = await api.get("/stores");
+            console.log("Réponse /stores:", response);
+          } catch (e2) {
+            console.log("/stores a échoué, essai /api/stores");
+            response = await api.get("/api/stores");
+            console.log("Réponse /api/stores:", response);
+          }
         }
+
+        // Si la réponse est un tableau, retournez-le
+        if (Array.isArray(response)) {
+          return response;
+        }
+        // Si la réponse a une propriété data qui est un tableau
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+        // Si la réponse a une propriété stores qui est un tableau
+        if (response && response.stores && Array.isArray(response.stores)) {
+          return response.stores;
+        }
+
+        console.warn("Format de réponse inattendu:", response);
+        return [];
+      } catch (error) {
+        console.error("Erreur chargement magasins:", error);
+        return [];
       }
-      
-      // Si la réponse est un tableau, retournez-le
-      if (Array.isArray(response)) {
-        return response;
-      }
-      // Si la réponse a une propriété data qui est un tableau
-      if (response && response.data && Array.isArray(response.data)) {
-        return response.data;
-      }
-      // Si la réponse a une propriété stores qui est un tableau
-      if (response && response.stores && Array.isArray(response.stores)) {
-        return response.stores;
-      }
-      
-      console.warn("Format de réponse inattendu:", response);
-      return [];
-    } catch (error) {
-      console.error("Erreur chargement magasins:", error);
-      return [];
-    }
-  },
-  retry: 2,
-});
+    },
+    retry: 2,
+  });
 
 
 
@@ -860,166 +860,178 @@ ${t('inventory.reportGenerated')}
               </Dialog>
 
               {/* Add Stock Dialog */}
- 
 
-<Dialog open={showStockDialog} onOpenChange={setShowStockDialog}>
-  <DialogTrigger asChild>
-    <Button variant="outline">
-      <Package className="w-4 h-4 mr-2" />
-      {t('inventory.newStock')}
-    </Button>
-  </DialogTrigger>
-  <DialogContent className="sm:max-w-[500px]">
-    <DialogHeader>
-      <DialogTitle>{t('inventory.addStock')}</DialogTitle>
-      <DialogDescription>{t('inventory.addStockDesc')}</DialogDescription>
-    </DialogHeader>
-    
-    {/* Debug pour voir les données */}
-    <div className="text-xs p-2 bg-blue-50 rounded mb-2">
-      Magasins chargés: {sortedStores?.length || 0}
-    </div>
-    
-    <Form {...stockForm}>
-      <form onSubmit={stockForm.handleSubmit(onAddStock)} className="space-y-4">
-        <FormField 
-          control={stockForm.control} 
-          name="item_id" 
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('inventory.item')}</FormLabel>
-              <Select 
-                onValueChange={(v) => field.onChange(Number(v))} 
-                value={field.value ? String(field.value) : ""}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('inventory.selectItem')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortedAvailableItems && sortedAvailableItems.length > 0 ? (
-                    sortedAvailableItems.map((item: any) => (
-                      <SelectItem key={item.id} value={String(item.id)}>
-                        {item.name} ({item.sku})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-items" disabled>
-                      Aucun article disponible
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} 
-        />
 
-        <FormField 
-          control={stockForm.control} 
-          name="store_id" 
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('inventory.store')}</FormLabel>
-              <Select 
-                onValueChange={(v) => {
-                  console.log("Store sélectionné:", v);
-                  field.onChange(Number(v));
-                }} 
-                value={field.value && field.value !== 0 ? String(field.value) : ""}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('inventory.selectStore')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortedStores && sortedStores.length > 0 ? (
-                    sortedStores.map((store: any) => (
-                      <SelectItem key={store.id} value={String(store.id)}>
-                        {store.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-stores" disabled>
-                      Aucun magasin disponible
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} 
-        />
+              <Dialog open={showStockDialog} onOpenChange={setShowStockDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Package className="w-4 h-4 mr-2" />
+                    {t('inventory.newStock')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>{t('inventory.addStock')}</DialogTitle>
+                    <DialogDescription>{t('inventory.addStockDesc')}</DialogDescription>
+                  </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-4">
-          <FormField 
-            control={stockForm.control} 
-            name="qty_on_hand" 
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('inventory.quantity')}</FormLabel>
-                <FormControl>
-                  <Input 
-                    min={0} 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => field.onChange(Number(e.target.value))} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
-          
-          <FormField 
-            control={stockForm.control} 
-            name="min_level" 
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('inventory.minThreshold')}</FormLabel>
-                <FormControl>
-                  <Input 
-                    min={0} 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => field.onChange(Number(e.target.value))} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
-          
-          <FormField 
-            control={stockForm.control} 
-            name="max_level" 
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('inventory.maxThreshold')}</FormLabel>
-                <FormControl>
-                  <Input 
-                    min={1} 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => field.onChange(Number(e.target.value))} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
-        </div>
-        
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => setShowStockDialog(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button type="submit" disabled={addStockMut.isPending}>
-            {addStockMut.isPending ? t('common.loading') : t('inventory.addStockButton')}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  </DialogContent>
-</Dialog>
+                  {/* Debug amélioré */}
+                  <div className="text-xs p-2 bg-blue-50 rounded mb-2 space-y-1">
+                    <div>Magasins chargés: {sortedStores?.length || 0}</div>
+                    {sortedStores && sortedStores.length > 0 && (
+                      <div className="text-green-600">
+                        ✅ Départements trouvés: {[...new Set(sortedStores.map(s => s.department))].join(', ')}
+                      </div>
+                    )}
+                    {(!sortedStores || sortedStores.length === 0) && (
+                      <div className="text-red-600">
+                        ⚠️ Aucun magasin trouvé. Vérifiez la base de données.
+                      </div>
+                    )}
+                  </div>
+
+                  <Form {...stockForm}>
+                    <form onSubmit={stockForm.handleSubmit(onAddStock)} className="space-y-4">
+                      <FormField
+                        control={stockForm.control}
+                        name="item_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('inventory.item')}</FormLabel>
+                            <Select
+                              onValueChange={(v) => field.onChange(Number(v))}
+                              value={field.value ? String(field.value) : ""}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('inventory.selectItem')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sortedAvailableItems && sortedAvailableItems.length > 0 ? (
+                                  sortedAvailableItems.map((item: any) => (
+                                    <SelectItem key={item.id} value={String(item.id)}>
+                                      {item.name} ({item.sku})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="no-items" disabled>
+                                    Aucun article disponible
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={stockForm.control}
+                        name="store_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('inventory.store')}</FormLabel>
+                            <Select
+                              onValueChange={(v) => {
+                                console.log("Store sélectionné:", v);
+                                const selectedStore = sortedStores?.find(s => s.id === Number(v));
+                                console.log("Département du store:", selectedStore?.department);
+                                field.onChange(Number(v));
+                              }}
+                              value={field.value && field.value !== 0 ? String(field.value) : ""}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('inventory.selectStore')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sortedStores && sortedStores.length > 0 ? (
+                                  sortedStores.map((store: any) => (
+                                    <SelectItem key={store.id} value={String(store.id)}>
+                                      {store.name} ({store.department})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="no-stores" disabled>
+                                    Aucun magasin disponible
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                          control={stockForm.control}
+                          name="qty_on_hand"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('inventory.quantity')}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  min={0}
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={stockForm.control}
+                          name="min_level"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('inventory.minThreshold')}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  min={0}
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={stockForm.control}
+                          name="max_level"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('inventory.maxThreshold')}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  min={1}
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3">
+                        <Button type="button" variant="outline" onClick={() => setShowStockDialog(false)}>
+                          {t('common.cancel')}
+                        </Button>
+                        <Button type="submit" disabled={addStockMut.isPending}>
+                          {addStockMut.isPending ? t('common.loading') : t('inventory.addStockButton')}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
               {/* Edit Stock Dialog */}
               <Dialog open={editStockDialog} onOpenChange={setEditStockDialog}>
                 <DialogContent className="sm:max-w-[600px]">
