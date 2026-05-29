@@ -324,7 +324,7 @@ ${index + 1}. ${client.nomComplet}
     }
     const idNum = Number(idStr.split(":")[1]);
     try {
-      await api.del<void>(`/hotel/guests/${idNum}`);
+      await api.del<void>(`/hotelrooms/guests/${idNum}`);
       setCustomers((prev) => prev.filter((c) => c.id !== row.id));
       if (selectedCustomer && selectedCustomer.id === row.id) setSelectedCustomer(null);
       toast({ title: t('crm.customerDeleted'), description: row.fullName });

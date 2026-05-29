@@ -71,6 +71,7 @@ export default function RestaurantMenu() {
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [selectedItem, setSelectedItem] = useState<ItemForDish | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
+  const [quantityInput, setQuantityInput] = useState<string>("");
   const [ingredients, setIngredients] = useState<DishIngredient[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -96,6 +97,23 @@ export default function RestaurantMenu() {
     loadDishes();
     loadItems();
   }, []);
+
+  // Validation de la saisie de quantité
+  const isQuantityInputValid = (value: string): boolean => {
+    if (value === "" || value === ".") return false;
+    return /^\d+\.?\d*$/.test(value) && parseFloat(value) > 0;
+  };
+
+  const getQuantityErrorMessage = (): string | null => {
+    if (quantityInput === "") return null;
+    if (!/^\d*\.?\d*$/.test(quantityInput) || quantityInput === ".") {
+      return t('restaurant.invalidQuantity') || "Quantité invalide";
+    }
+    if (/^\d+\.?\d*$/.test(quantityInput) && parseFloat(quantityInput) <= 0) {
+      return t('restaurant.quantityMustBePositive') || "La quantité doit être supérieure à 0";
+    }
+    return null;
+  };
 
   // Fonction de téléchargement de fichier
   const telechargerFichier = (contenu: string, nomFichier: string, typeMime: string) => {
@@ -420,12 +438,27 @@ ${t('restaurant.reportFooter')}
     }
   };
 
+  // Réinitialiser le champ quantité
+  const resetQuantityFields = () => {
+    setQuantity(0);
+    setQuantityInput("");
+  };
+
   // Ajouter un ingrédient
   const addIngredient = () => {
-    if (!selectedItem || quantity <= 0) {
+    if (!selectedItem) {
       toast({
         title: t('common.error'),
         description: t('restaurant.selectItemAndQuantity'),
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!isQuantityInputValid(quantityInput)) {
+      toast({
+        title: t('common.error'),
+        description: getQuantityErrorMessage() || t('restaurant.selectItemAndQuantity'),
         variant: 'destructive'
       });
       return;
@@ -442,7 +475,7 @@ ${t('restaurant.reportFooter')}
 
     setIngredients(prev => [...prev, newIngredient]);
     setSelectedItem(null);
-    setQuantity(0);
+    resetQuantityFields();
     setShowIngredientDialog(false);
 
     toast({
@@ -454,6 +487,13 @@ ${t('restaurant.reportFooter')}
   // Supprimer un ingrédient
   const removeIngredient = (index: number) => {
     setIngredients(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Fermer le dialog ingrédient et réinitialiser
+  const closeIngredientDialog = () => {
+    setShowIngredientDialog(false);
+    setSelectedItem(null);
+    resetQuantityFields();
   };
 
   // Soumettre le plat (création ou modification)
@@ -568,6 +608,7 @@ ${t('restaurant.reportFooter')}
     setShowDishDialog(false);
     setEditingDish(null);
     setIngredients([]);
+    resetQuantityFields();
     dishForm.reset();
   };
 
@@ -584,6 +625,9 @@ ${t('restaurant.reportFooter')}
       </div>
     );
   }
+
+  const quantityError = getQuantityErrorMessage();
+  const quantityHasError = quantityInput !== "" && quantityError !== null;
 
   return (
     <div className="flex h-screen bg-background">
@@ -704,11 +748,13 @@ ${t('restaurant.reportFooter')}
               </DialogHeader>
 
               <Form {...dishForm}>
-                <form onSubmit={dishForm.handleSubmit(onSubmitDish)} className="space-y-6">
+                <form onSubmit={dishForm.handleSubmit(onSubmitDish)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
+
+                    {/* Nom — pleine largeur */}
                     <FormField control={dishForm.control} name="name" render={({ field }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel>{t('restaurant.dishName')}</FormLabel>
+                        <FormLabel>{t('restaurant.dishName')} *</FormLabel>
                         <FormControl>
                           <Input placeholder={t('restaurant.dishNamePlaceholder')} {...field} />
                         </FormControl>
@@ -716,27 +762,67 @@ ${t('restaurant.reportFooter')}
                       </FormItem>
                     )} />
 
+                    {/* Catégorie + Difficulté — côte à côte */}
                     <FormField control={dishForm.control} name="category" render={({ field }) => (
-                      <FormItem className="col-span-2">
+                      <FormItem>
                         <FormLabel>{t('restaurant.category')}</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
                             <SelectTrigger><SelectValue placeholder={t('restaurant.selectCategory')} /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="appetizer">{t('restaurant.categoryAppetizer')}</SelectItem>
-                              <SelectItem value="main_course">{t('restaurant.categoryMainCourse')}</SelectItem>
-                              <SelectItem value="dessert">{t('restaurant.categoryDessert')}</SelectItem>
-                              <SelectItem value="beverage">{t('restaurant.categoryBeverage')}</SelectItem>
-                              <SelectItem value="side_dish">{t('restaurant.categorySideDish')}</SelectItem>
-                              <SelectItem value="dejeuner">{t('restaurant.categoryBreakfast')}</SelectItem>
-                              <SelectItem value="snack">{t('restaurant.categorySnack')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="appetizer">{t('restaurant.categoryAppetizer')}</SelectItem>
+                            <SelectItem value="main_course">{t('restaurant.categoryMainCourse')}</SelectItem>
+                            <SelectItem value="dessert">{t('restaurant.categoryDessert')}</SelectItem>
+                            <SelectItem value="beverage">{t('restaurant.categoryBeverage')}</SelectItem>
+                            <SelectItem value="side_dish">{t('restaurant.categorySideDish')}</SelectItem>
+                            <SelectItem value="dejeuner">{t('restaurant.categoryBreakfast')}</SelectItem>
+                            <SelectItem value="snack">{t('restaurant.categorySnack')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormField control={dishForm.control} name="difficulty" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('restaurant.difficulty')}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="easy">{t('restaurant.difficultyEasy')}</SelectItem>
+                            <SelectItem value="medium">{t('restaurant.difficultyMedium')}</SelectItem>
+                            <SelectItem value="hard">{t('restaurant.difficultyHard')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    {/* Prix + Temps de préparation — côte à côte */}
+                    <FormField control={dishForm.control} name="price" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('restaurant.price')} (Ar) *</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
 
+                    <FormField control={dishForm.control} name="preparationTime" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('restaurant.preparationTime')} (min)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    {/* Description — pleine largeur */}
                     <FormField control={dishForm.control} name="description" render={({ field }) => (
                       <FormItem className="col-span-2">
                         <FormLabel>{t('common.description')}</FormLabel>
@@ -746,91 +832,45 @@ ${t('restaurant.reportFooter')}
                         <FormMessage />
                       </FormItem>
                     )} />
-
-                    <FormField control={dishForm.control} name="preparationTime" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.preparationTime')}</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <FormField control={dishForm.control} name="price" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.price')}</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <FormField control={dishForm.control} name="difficulty" render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>{t('restaurant.difficulty')}</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="easy">{t('restaurant.difficultyEasy')}</SelectItem>
-                              <SelectItem value="medium">{t('restaurant.difficultyMedium')}</SelectItem>
-                              <SelectItem value="hard">{t('restaurant.difficultyHard')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
                   </div>
 
-                  {/* Section Ingrédients */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <FormLabel>{t('restaurant.ingredients')} ({ingredients.length})</FormLabel>
+                  {/* Section Ingrédients — style BarMenu */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {t('restaurant.ingredients')} / {t('restaurant.components', 'Composants')}
+                      </span>
                       <Button type="button" variant="outline" size="sm" onClick={() => setShowIngredientDialog(true)}>
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="h-3.5 w-3.5 mr-1" />
                         {t('restaurant.addIngredient')}
                       </Button>
                     </div>
 
-                    {ingredients.length > 0 ? (
-                      <div className="space-y-2 border rounded-lg p-4">
+                    {ingredients.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">{t('restaurant.noIngredients')}</p>
+                    ) : (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
                         {ingredients.map((ingredient, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                          <div key={index} className="flex items-center justify-between bg-muted/30 rounded px-3 py-1.5 text-sm">
+                            <span>{ingredient.itemName}</span>
                             <div className="flex items-center gap-3">
-                              <span className="font-medium text-sm">{ingredient.itemName}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {ingredient.quantity} {ingredient.unit}
-                              </span>
-                              <span className="text-xs text-green-600">
-                                {ingredient.cost.toLocaleString()} Ar
-                              </span>
+                              <span className="text-muted-foreground">{ingredient.quantity} {ingredient.unit}</span>
+                              <span className="text-xs text-green-600">{ingredient.cost.toLocaleString()} Ar</span>
+                              <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => removeIngredient(index)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => removeIngredient(index)}>
-                              <Trash2 className="h-3 w-3 text-red-600" />
-                            </Button>
                           </div>
                         ))}
-                        <div className="pt-2 border-t">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="font-medium">{t('restaurant.totalIngredientsCost')}:</span>
-                            <span className="text-green-600 font-bold">
-                              {calculateTotalCost(ingredients).toLocaleString()} Ar
-                            </span>
-                          </div>
+                        <div className="flex justify-between items-center text-sm px-3 pt-2 border-t mt-1">
+                          <span className="font-medium">{t('restaurant.totalIngredientsCost')} :</span>
+                          <span className="text-green-600 font-semibold">{calculateTotalCost(ingredients).toLocaleString()} Ar</span>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-muted-foreground border rounded-md">
-                        <div className="text-sm">{t('restaurant.noIngredients')}</div>
-                        <div className="text-xs">{t('restaurant.clickToAddIngredient')}</div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex justify-end gap-3">
+                  <div className="flex justify-end gap-2 pt-2">
                     <Button type="button" variant="outline" onClick={resetForm}>
                       {t('common.cancel')}
                     </Button>
@@ -844,7 +884,7 @@ ${t('restaurant.reportFooter')}
           </Dialog>
 
           {/* Dialog pour ajouter un ingrédient */}
-          <Dialog open={showIngredientDialog} onOpenChange={setShowIngredientDialog}>
+          <Dialog open={showIngredientDialog} onOpenChange={(open) => !open && closeIngredientDialog()}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>{t('restaurant.addIngredient')}</DialogTitle>
@@ -879,15 +919,28 @@ ${t('restaurant.reportFooter')}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('inventory.quantity')}</label>
                   <Input
-                    type="number"
-                    step="0.001"
+                    type="text"
+                    inputMode="decimal"
                     placeholder={t('restaurant.quantityNeeded')}
-                    value={quantity || ''}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    value={quantityInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      // Autoriser uniquement : chiffres, un seul point décimal, pas de lettre ni caractère spécial
+                      if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                        setQuantityInput(raw);
+                        const parsed = parseFloat(raw);
+                        setQuantity(!isNaN(parsed) ? parsed : 0);
+                      }
+                      // Si le caractère tapé n'est pas autorisé, on ignore silencieusement
+                    }}
+                    className={quantityHasError ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {quantityHasError && (
+                    <p className="text-xs text-red-500">{quantityError}</p>
+                  )}
                 </div>
 
-                {selectedItem && quantity > 0 && (
+                {selectedItem && isQuantityInputValid(quantityInput) && (
                   <div className="p-3 bg-muted/50 rounded-md space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span>{t('inventory.unit')}:</span>
@@ -905,10 +958,14 @@ ${t('restaurant.reportFooter')}
                 )}
 
                 <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setShowIngredientDialog(false)}>
+                  <Button type="button" variant="outline" onClick={closeIngredientDialog}>
                     {t('common.cancel')}
                   </Button>
-                  <Button type="button" onClick={addIngredient} disabled={!selectedItem || quantity <= 0}>
+                  <Button
+                    type="button"
+                    onClick={addIngredient}
+                    disabled={!selectedItem || !isQuantityInputValid(quantityInput)}
+                  >
                     {t('restaurant.addIngredient')}
                   </Button>
                 </div>

@@ -218,7 +218,7 @@ export default function HotelPlan() {
     refetch: refetchRooms,
   } = useQuery<Room[]>({
     queryKey: ["hotel", "rooms"],
-    queryFn: () => api.get<Room[]>("/hotel/rooms"),
+    queryFn: () => api.get<Room[]>("/hotelrooms/rooms"),
     staleTime: 30_000,
   });
 
@@ -229,7 +229,7 @@ export default function HotelPlan() {
     refetch: refetchRes,
   } = useQuery<Reservation[]>({
     queryKey: ["hotel", "reservations"],
-    queryFn: () => api.get<Reservation[]>("/hotel/reservations"),
+    queryFn: () => api.get<Reservation[]>("/hotelrooms/reservations"),
     staleTime: 30_000,
   });
 
@@ -240,7 +240,7 @@ export default function HotelPlan() {
     refetch: refetchMaint,
   } = useQuery<RoomMaintenance[]>({
     queryKey: ["hotel", "maintenances"],
-    queryFn: () => api.get<RoomMaintenance[]>("/hotel/maintenances"),
+    queryFn: () => api.get<RoomMaintenance[]>("/hotelrooms/maintenances"),
     staleTime: 30_000,
   });
 

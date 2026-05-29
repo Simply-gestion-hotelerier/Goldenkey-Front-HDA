@@ -82,7 +82,6 @@
     "deleteError": "Delete error",
     "refreshing": "Refreshing..."
   },
-
   "login": {
     "hotelManagement": "Hotel Management System",
     "title": "Welcome",
@@ -99,7 +98,7 @@
     "error": "Invalid credentials",
     "connectionError": "Connection error. Please try again."
   },
- "rooms": {
+  "rooms": {
     "roomManagement": "Room Management",
     "roomAdded": "Room added",
     "created": "created",
@@ -209,7 +208,6 @@
     "retry": "Retry",
     "availableRooms": "{avail}/{total} room(s) available"
   },
-
   "nav": {
     "dashboard": "Dashboard",
     "hotel": "Hotel",
@@ -220,8 +218,6 @@
     "pos": "POS",
     "menu": "Menu",
     "kds": "Kitchen KDS",
-    
-
     "crm": "CRM & Clients",
     "inventory": "Inventory",
     "dailyInvoice": "Daily Invoice",
@@ -232,9 +228,18 @@
     "settings": "Settings",
     "team": "Team Management",
     "clientInvoice": "Client Invoice",
-    "bar": "Bar"
+    "bar": "Lounge Bar",
+    "group": {
+      "lodging": "LODGING",
+      "hotel_fb": "HOTEL F&B",
+      "restaurant": "RESTAURANT",
+      "bar": "Lounge Bar",
+      "casino": "CASINO",
+      "finance": "FINANCE",
+      "stock": "STOCK"
+    },
+    "hotelrooms": "Hotel Rooms"
   },
-
   "crm": {
     "title": "CRM & Customer Relations",
     "subtitle": "Customer base • Stays • Communications",
@@ -270,7 +275,6 @@
     "deleteError": "Unable to delete customer",
     "source": "Source",
     "sourceHotel": "Hotel",
-  
     "sourceBar": "Bar",
     "sourceRestaurant": "Restaurant",
     "loyalty": "Loyalty",
@@ -292,7 +296,6 @@
     "preferences": "Preferences",
     "loyaltyPoints": "Loyalty Points"
   },
-
   "dailyInvoice": {
     "title": "Daily Invoice",
     "subtitle": "Choose a department and date, then export to PDF or print 80mm ticket",
@@ -305,8 +308,7 @@
     "printA4": "PDF A4",
     "hotel": "Hotel",
     "restaurant": "Restaurant",
-    "pub": "Pub / Bar",
-
+    "pub": "Pub / Lounge Bar",
     "occupancyRate": "Occupancy rate",
     "arrivals": "Arrivals",
     "departures": "Departures",
@@ -358,10 +360,8 @@
     "hotelInvoice": "HOTEL",
     "restaurantInvoice": "RESTAURANT",
     "pubInvoice": "PUB / BAR",
-
     "dailyInvoiceTitle": "*** DAILY INVOICE ***"
   },
-
   "export": {
     "title": "Export",
     "excel": "Excel",
@@ -379,7 +379,6 @@
     "txtDescription": "Readable format",
     "jsonDescription": "Raw API data"
   },
-
   "errors": {
     "generic": "An error occurred",
     "network": "Connection error",
@@ -388,7 +387,6 @@
     "validation": "Validation error",
     "stockInsufficient": "Insufficient stock for some ingredients"
   },
-
   "profile": {
     "myAccount": "My account",
     "logout": "Logout",
@@ -400,7 +398,6 @@
     "security": "Security",
     "settings": "Settings"
   },
-
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all read",
@@ -409,7 +406,6 @@
     "delete": "Delete",
     "markAsRead": "Mark as read"
   },
-
   "inventory": {
     "allStores": "All stores",
     "exportReport": "INVENTORY REPORT - Hôtel de l'Avenue",
@@ -540,7 +536,6 @@
     "movementOut": "Out",
     "movementAdjust": "Adjust"
   },
-
   "reports": {
     "title": "Reports",
     "subtitle": "Sales, orders and stock analysis",
@@ -561,15 +556,12 @@
     "ofRestaurantRevenue": "of Restaurant Revenue",
     "paymentBreakdown": "Payment Breakdown",
     "hotelReservationsPeriod": "Hotel Reservations (period)",
-
     "serviceCount": "Service count",
     "totalServices": "Total services",
-  
     "hotelName": " Hôtel de l'Avenue — Report",
     "printedAt": "Printed at",
     "restaurantSales": "Restaurant Sales",
     "hotelSales": "Hotel Sales",
-  
     "grandTotal": "Grand Total",
     "restaurantBarOrders": "Restaurant & Bar — Orders",
     "total": "Total",
@@ -601,12 +593,10 @@
     "booked": "Booked",
     "totals": "Totals",
     "completed": "Completed",
-
     "selectPeriod": "Select a period to display reports",
     "due": "due",
     "footer": "Hotel management system — Automatically generated document"
   },
-
   "reservations": {
     "title": "Reservations",
     "newReservation": "New reservation",
@@ -732,7 +722,6 @@
     "confirmed": "Confirmed",
     "pending": "Pending"
   },
-
   "restaurant": {
     "subtitle": "Orders • Kitchen • Inventory • Cash",
     "orderDeleted": "Order deleted",
@@ -885,14 +874,17 @@
       "noOrders": "No orders",
       "orderNumber": "Order #{{id}}",
       "table": "Table"
-    }
+    },
+    "invalidQuantity": "Invalid quantity",
+    "quantityMustBePositive": "Quantity must be greater than 0",
+    "components": "Components",
+    "itemsAvailable": "item(s) available",
+    "unitCost": "Unit cost"
   },
-
   "restaurantPos": {
     "title": "Order Taking",
     "subtitle": "Tables → Dishes → Payment",
     "posRestaurant": "Restaurant",
-    "roomFolios": "Room Folios",
     "tables": "Tables",
     "menu": "Menu",
     "orders": "Orders",
@@ -928,7 +920,6 @@
     "unavailable": "Unavailable",
     "addToOrder": "Add to order",
     "loadingFolio": "Loading…",
-    "noGuestsToday": "No checked-in guests today",
     "refresh": "Refresh",
     "invoiceHeader": "** ORDER / INVOICE **",
     "orderNo": "Order No.",
@@ -1098,7 +1089,6 @@
     "folioSubtitle": "Checked-in guests · accommodation + orders + kitchen statuses",
     "noGuestsToday": "No checked-in guests today"
   },
-
   "roomInspection": {
     "title": "Room Inspection",
     "subtitle": "Condition, remarks, photos",
@@ -1111,7 +1101,6 @@
     "inspectionError": "Inspection error",
     "validateInspection": "Validate inspection"
   },
-
   "settings": {
     "title": "Settings",
     "subtitle": "Account • Theme",
@@ -1128,7 +1117,6 @@
     "profileUpdateError": "Error updating profile",
     "imageTooLarge": "Image must not exceed 2MB"
   },
-
   "rooms": {
     "roomManagement": "Room Management",
     "roomAdded": "Room added",
@@ -1179,7 +1167,6 @@
     "capacity": "Capacity",
     "bedType": "Bed Type"
   },
-
   "hotel": {
     "configuration": "Hotel · Configuration",
     "available": "Available",
@@ -1225,9 +1212,6 @@
     "exportSuccess": "Export successful",
     "exportError": "Export error"
   },
-
-
-
   "team": {
     "title": "Team",
     "subtitle": "Manage user accounts",
@@ -1260,7 +1244,6 @@
       "cashier": "Cashier"
     }
   },
-
   "dashboard": {
     "title": "Hôtel de l'Avenue",
     "subtitle": "Complete Management Platform",
@@ -1272,10 +1255,8 @@
     "occupiedRooms": "Occupied Rooms",
     "restaurantTables": "Restaurant Tables",
     "barTables": "Bar - Tables",
-
     "reportAndAnalysis": "Report & Data Analysis"
   },
-
   "housekeeping": {
     "title": "Housekeeping",
     "subtitle": "Room tracking and status",
@@ -1291,7 +1272,6 @@
     "statusUpdatedDesc": "Room status has been updated.",
     "room": "Room"
   },
-
   "guestInvoice": {
     "title": "Guest Invoice (folio)",
     "subtitle": "Search for a customer — paid and unpaid orders, 80mm or A4 printing.",
@@ -1359,7 +1339,6 @@
     "unpaidOrders": "of unpaid orders",
     "settledMessage": "Account settled — Thank you for your stay!"
   },
-
   "recentActivity": {
     "title": "Recent Activity",
     "secondsAgo": "{{seconds}}s ago",
@@ -1374,7 +1353,6 @@
     "order": "Order",
     "items": "item(s)",
     "serviceCompleted": "Service Completed",
- 
     "stockMovement": "Stock {{type}}",
     "in": "In",
     "out": "Out",

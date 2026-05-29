@@ -1,5 +1,5 @@
 // ============================================================
-// RESTAURANT POS - VERSION FRANÇAISE COMPLÈTE
+// BAR POS - VERSION FRANÇAISE COMPLÈTE
 // Tous les textes sont en français directement dans le composant
 // ============================================================
 
@@ -17,7 +17,7 @@ import {
   Clock, RefreshCw, MessageSquare, Printer, FileText,
   CheckCircle2, XCircle, ChevronDown, ChevronRight,
   ChevronLeft, Info, Hash, Tag, Percent, X, CreditCard,
-  Users,
+  Users, Hotel as HotelIcon, Plus, CheckCheck,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,15 +48,15 @@ const formatOrderNumber = (orderId: number, createdAt?: string) => {
 const CATEGORIES = [
   { key: "beverage", label: "Boissons" },
   { key: "breakfast", label: "Petit-déjeuner" },
-  { key: "appetizer", label: "Apéritifs" },
+  { key: "appetizer", label: "Entrées" },
   { key: "main_course", label: "Plats principaux" },
-  { key: "side_dish", label: "Accompagnements" },
   { key: "dessert", label: "Desserts" },
-  { key: "snack", label: "Snacks" },
+  { key: "side_dish", label: "Accompagnements" },
+  { key: "snack", label: "Snacks / Room Service" },
 ];
 
 const CATEGORY_ORDER = [
-  "beverage", "breakfast", "appetizer", "main_course", "side_dish", "dessert", "snack",
+  "beverage", "breakfast", "appetizer", "main_course", "dessert", "side_dish", "snack",
 ];
 
 const getIndex = (cat?: string) => {
@@ -72,7 +72,7 @@ const DEPT_COLORS: Record<string, string> = {
 };
 
 const FIRE_STYLE: Record<string, string> = {
-  commanded: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  commanded: "bg-blue-100 text-yellow-800 border-yellow-200",
   preparing: "bg-blue-100 text-blue-800 border-blue-200",
   ready: "bg-purple-100 text-purple-800 border-purple-200",
   delivered: "bg-green-100 text-green-800 border-green-200",
@@ -96,10 +96,10 @@ function FireBadge({ status }: { status: string }) {
 // ── Restaurant info ───────────────────────────────────────────────────────────
 
 const RESTAURANT = {
-  name: "Hôtel de l'Avenue",
+  name: "Hôtel de l'Avenue — Restaurant Service",
   address: "Antsirabe, Madagascar",
-  phone: "+261 038 33 188 31",
-
+  phone: " +261 34 20 310 30",
+  email: "contact@hdahotel.com"
 };
 
 const W = 42;
@@ -472,7 +472,7 @@ function printA4(tableCode: string, order: any) {
 }
 
 // ── CardFeesInfoBanner ────────────────────────────────────────────────────────
-// (FolioExpandedDetail removed — folio chambre feature not available in Bar POS)
+// BarPOS — no folio chambre feature
 
 // CardFeesInfoBanner
 function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
@@ -514,7 +514,7 @@ function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 
-export default function RestaurantPOS() {
+export default function HotelPOS() {
   const { hasScope } = useAuth();
   const qc = useQueryClient();
 
@@ -571,8 +571,8 @@ export default function RestaurantPOS() {
 
   // Queries
   const { data: tables = [] } = useQuery({
-    queryKey: ["restaurant", "tables"],
-    queryFn: () => api.get<any[]>("/restaurant/tables"),
+    queryKey: ["hotel", "tables"],
+    queryFn: () => api.get<any[]>("/hotel/tables"),
     ...qo,
   });
 
@@ -581,17 +581,17 @@ export default function RestaurantPOS() {
   }, [tables]);
 
   const { data: dishes = [], isLoading: dishesLoading, error: dishesError } = useQuery({
-    queryKey: ["dishes"],
+    queryKey: ["hotel-dishes"],
     queryFn: async () => {
-      const r = await api.get<any>("/dishes");
+      const r = await api.get<any>("/hotel/dishes");
       return Array.isArray(r) ? r : Array.isArray(r?.data) ? r.data : [];
     },
     ...qo,
   });
 
   const { data: allOrders = [], refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", "restaurant"],
-    queryFn: () => api.get<any[]>("/restaurant/orders?dept=restaurant&status=open"),
+    queryKey: ["orders", "hotel"],
+    queryFn: () => api.get<any[]>("/hotel/orders?status=open"),
     ...qo,
   });
 
@@ -618,29 +618,29 @@ export default function RestaurantPOS() {
 
   // Mutations
   const createTable = useMutation({
-    mutationFn: (code: string) => api.post("/restaurant/tables", { code, department: "restaurant" }),
+    mutationFn: (code: string) => api.post("/hotel/tables", { code, department: "hotel" }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["restaurant", "tables"] });
+      qc.invalidateQueries({ queryKey: ["hotel", "tables"] });
       setNewTableCode("");
-      toast({ title: "Table créée" });
+      toast({ title: "Table / Chambre créée (hôtel)" });
     },
   });
 
   const editTableMut = useMutation({
     mutationFn: (p: { id: number; code: string }) =>
-      api.patch(`/restaurant/tables/${p.id}`, { code: p.code }),
+      api.patch(`/hotel/tables/${p.id}`, { code: p.code }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["restaurant", "tables"] });
+      qc.invalidateQueries({ queryKey: ["hotel", "tables"] });
       setEditingTable(null);
-      toast({ title: "Table modifiée" });
+      toast({ title: "Table / Chambre modifiée (hôtel)" });
     },
   });
 
   const removeTable = useMutation({
-    mutationFn: (id: number) => api.del(`/restaurant/tables/${id}`),
+    mutationFn: (id: number) => api.del(`/hotel/tables/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["restaurant", "tables"] });
-      toast({ title: "Table supprimée" });
+      qc.invalidateQueries({ queryKey: ["hotel", "tables"] });
+      toast({ title: "Table / Chambre supprimée (hôtel)" });
     },
     onError: (e: any) =>
       toast({ title: "Impossible de supprimer la table", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -649,18 +649,18 @@ export default function RestaurantPOS() {
   const createOrder = useMutation({
     mutationFn: async (tableCode: string) => {
       const invoiceNumber = generateInvoiceNumber();
-      return api.post("/restaurant/orders", { dept: "restaurant", tableCode, invoiceNumber });
+      return api.post("/hotel/orders", { dept: "hotel", tableCode, invoiceNumber });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders", "restaurant"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders", "hotel"] }),
   });
 
   const addLine = useMutation({
     mutationFn: (p: { orderId: number; itemId: number; comment?: string }) =>
-      api.post(`/restaurant/orders/${p.orderId}/lines`, {
+      api.post(`/hotel/orders/${p.orderId}/lines`, {
         itemId: Number(p.itemId), qty: 1, comment: p.comment ?? null,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
       toast({ title: "Article ajouté" });
     },
     onError: (e: any) =>
@@ -669,9 +669,9 @@ export default function RestaurantPOS() {
 
   const deleteOrderLine = useMutation({
     mutationFn: async ({ orderId, lineId }: { orderId: number; lineId: number }) =>
-      api.del(`/restaurant/orders/${orderId}/lines/${lineId}`),
+      api.del(`/hotel/orders/${orderId}/lines/${lineId}`),
     onSuccess: async (_, { orderId }) => {
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
       await refetchOrders();
       if (selectedOrder && selectedOrder.id === orderId) await refreshSelectedOrder(orderId);
       toast({ title: "Article supprimé" });
@@ -680,15 +680,27 @@ export default function RestaurantPOS() {
       toast({ title: "Erreur de suppression", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
   });
 
+  const incrementLine = useMutation({
+    mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) =>
+      api.patch(`/hotel/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 }),
+    onSuccess: async (_, { orderId }) => {
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+      await refetchOrders();
+      toast({ title: "Quantité augmentée" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+  });
+
   const handleDeleteLine = (orderId: number, lineId: number, itemName: string) => {
     if (confirm(`Supprimer "${itemName}" de cette commande ?`))
       deleteOrderLine.mutate({ orderId, lineId });
   };
 
   const closeOrder = useMutation({
-    mutationFn: async (id: number) => api.post(`/restaurant/orders/${id}/close`),
+    mutationFn: async (id: number) => api.post(`/hotel/orders/${id}/close`),
     onSuccess: async (_, id) => {
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
       await refreshSelectedOrder(id);
       toast({ title: "Commande clôturée" });
       setDetailsOpen(false);
@@ -700,7 +712,7 @@ export default function RestaurantPOS() {
   const payOrder = useMutation({
     mutationFn: (p: { orderId: number; amount: number; method: string; receivedAmount?: number }) =>
       api.post("/cash/payments", {
-        department: "restaurant",
+        department: "hotel",
         method: p.method,
         amount: p.amount,
         receivedAmount: p.receivedAmount ?? null,
@@ -715,7 +727,7 @@ export default function RestaurantPOS() {
       setPayAmount("");
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
     },
     onError: (e: any) =>
       toast({ title: "Erreur de paiement", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -732,7 +744,7 @@ export default function RestaurantPOS() {
       setDiscountReason("");
       setShowDiscountForm(false);
       await refreshSelectedOrder(vars.orderId);
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
     },
     onError: (e: any) =>
       toast({ title: "Erreur de remise", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -744,7 +756,7 @@ export default function RestaurantPOS() {
     onSuccess: async (_, orderId) => {
       toast({ title: "Remise supprimée" });
       await refreshSelectedOrder(orderId);
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
     },
     onError: (e: any) =>
       toast({ title: "Erreur de remise", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -752,10 +764,10 @@ export default function RestaurantPOS() {
 
   const updateLineStatus = useMutation({
     mutationFn: (p: { orderId: number; lineId: number; status: string }) =>
-      api.patch(`/restaurant/orders/${p.orderId}/lines/${p.lineId}/status`, { status: p.status }),
+      api.patch(`/hotel/orders/${p.orderId}/lines/${p.lineId}/status`, { status: p.status }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
-      qc.invalidateQueries({ queryKey: ["orders", "restaurant", "all"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+      qc.invalidateQueries({ queryKey: ["orders", "hotel", "all"] });
     },
     onError: (e: any) =>
       toast({ title: "Erreur de mise à jour", description: String(e), variant: "destructive" }),
@@ -771,7 +783,7 @@ export default function RestaurantPOS() {
   const refreshSelectedOrder = async (orderId: number) => {
     setLoadingOrder(true);
     try {
-      const order = await api.get<any>(`/restaurant/orders/${orderId}`);
+      const order = await api.get<any>(`/hotel/orders/${orderId}`);
       if (!order.orderNumber) order.orderNumber = formatOrderNumber(order.id, order.createdAt);
       if (!order.invoiceNumber) order.invoiceNumber = generateInvoiceNumber(order.id);
       setSelectedOrder(order);
@@ -834,7 +846,7 @@ export default function RestaurantPOS() {
 
   const statusBadge = (s: string) => {
     const styles: Record<string, string> = {
-      open: "bg-yellow-50 text-yellow-700 border-yellow-200",
+      open: "bg-blue-50 text-yellow-700 border-yellow-200",
       closed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
     };
@@ -894,8 +906,8 @@ export default function RestaurantPOS() {
           {/* Title + tabs */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Prise de commande</h1>
-              <p className="text-muted-foreground">Tables → Plats → Paiement</p>
+              <h1 className="text-3xl font-bold">Hôtel POS</h1>
+              <p className="text-muted-foreground">Tables → Articles → Paiement</p>
             </div>
 
             <div className="flex gap-1 bg-muted rounded-lg p-1">
@@ -910,7 +922,7 @@ export default function RestaurantPOS() {
                 >
                   {tab === "pos" && <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
                   {tab === "waiters" && <Users className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
-                  {tab === "pos" ? "Restaurant" : "Serveurs"}
+                  {tab === "pos" ? "Bar" : "Serveurs"}
                 </button>
               ))}
             </div>
@@ -1113,8 +1125,8 @@ export default function RestaurantPOS() {
                                   (order.lines ?? [])
                                     .sort((a, b) => getIndex(a.item?.category) - getIndex(b.item?.category))
                                     .map((line: any, i: number) => (
-                                      <div key={line.id ?? i} className="flex justify-between items-start py-2 text-sm">
-                                        <div className="flex-1">
+                                      <div key={line.id ?? i} className="flex justify-between items-start py-2 text-sm gap-2">
+                                        <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2 flex-wrap font-medium">
                                             {line.itemName} ×{line.qty}
                                             {fireStatusBadge(line.fireStatus)}
@@ -1129,7 +1141,47 @@ export default function RestaurantPOS() {
                                             <Clock className="h-3 w-3" />{line.itempreparationTime ?? 0} min
                                           </div>
                                         </div>
-                                        <div className="font-semibold ml-2 whitespace-nowrap">{fmt(line.unitPrice * line.qty)} Ar</div>
+                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                          <div className="font-semibold whitespace-nowrap">{fmt(line.unitPrice * line.qty)} Ar</div>
+                                          {order.status === "open" && (
+                                            <div className="flex gap-1">
+                                              {/* + Quantité */}
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-6 w-6 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                title="Ajouter 1 unité"
+                                                disabled={incrementLine.isPending}
+                                                onClick={() => incrementLine.mutate({
+                                                  orderId: order.id,
+                                                  lineId: line.id,
+                                                  currentQty: line.qty,
+                                                })}
+                                              >
+                                                <Plus className="h-3.5 w-3.5" />
+                                              </Button>
+                                              {/* Livré */}
+                                              {line.fireStatus !== "delivered" && (
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="h-6 px-1.5 text-green-700 border-green-200 hover:bg-green-50 text-xs font-medium"
+                                                  title="Marquer comme livré"
+                                                  disabled={updateLineStatus.isPending}
+                                                  onClick={() => handleUpdateLineStatus(order.id, line.id, "delivered")}
+                                                >
+                                                  <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                                                  Livré
+                                                </Button>
+                                              )}
+                                              {line.fireStatus === "delivered" && (
+                                                <span className="h-6 px-1.5 inline-flex items-center text-xs text-green-600 font-medium">
+                                                  <CheckCheck className="h-3.5 w-3.5 mr-1" />Livré
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     ))
                                 )}

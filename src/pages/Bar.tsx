@@ -1,4 +1,4 @@
-// src/pages/hotel/Hotel.tsx
+// src/pages/bar/Bar.tsx
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Hotel as HotelIcon,
+  Wine,
   Clock,
   CheckCircle,
   Package,
@@ -19,7 +19,6 @@ import {
   Table,
   FileCode,
   FileSpreadsheet,
-  Wine,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,7 +30,7 @@ import { saveAs } from "file-saver";
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
 
-const HotelDashboard = () => {
+const Bar = () => {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -39,30 +38,30 @@ const HotelDashboard = () => {
   const [exportLoading, setExportLoading] = useState(false);
 
   const { data: openOrders = [] } = useQuery({
-    queryKey: ["hotel", "orders", "open"],
-    queryFn: () => api.get<any[]>("/hotel/orders?status=open"),
+    queryKey: ["lounge", "orders", "open"],
+    queryFn: () => api.get<any[]>("/bar/orders?status=open"),
   });
 
   const { data: allOrders = [] } = useQuery({
-    queryKey: ["hotel", "orders", "all"],
-    queryFn: () => api.get<any[]>("/hotel/orders"),
+    queryKey: ["lounge", "orders", "all"],
+    queryFn: () => api.get<any[]>("/bar/orders"),
   });
 
   const { data: tables = [] } = useQuery({
-    queryKey: ["hotel", "tables"],
-    queryFn: () => api.get<any[]>("/hotel/tables"),
+    queryKey: ["lounge", "tables"],
+    queryFn: () => api.get<any[]>("/bar/tables"),
   });
 
   const reportsToday = useQuery({
-    queryKey: ["reports", "daily", "hotel"],
+    queryKey: ["reports", "daily", "lounge"],
     queryFn: () =>
-      api.get<any>(`/reports/daily?dept=hotel&date=${new Date().toISOString().slice(0, 10)}`),
+      api.get<any>(`/reports/daily?dept=lounge&date=${new Date().toISOString().slice(0, 10)}`),
   });
 
   const deleteOrder = useMutation({
-    mutationFn: (id: number) => api.del(`/hotel/orders/${id}`),
+    mutationFn: (id: number) => api.del(`/bar/orders/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hotel", "orders", "all"] });
+      qc.invalidateQueries({ queryKey: ["lounge", "orders", "all"] });
       toast({ title: "Commande supprimée" });
     },
     onError: (e: any) =>
@@ -70,10 +69,10 @@ const HotelDashboard = () => {
   });
 
   const closeOrder = useMutation({
-    mutationFn: (orderId: number) => api.post(`/hotel/orders/${orderId}/close`),
+    mutationFn: (orderId: number) => api.post(`/bar/orders/${orderId}/close`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["hotel", "orders", "open"] });
-      qc.invalidateQueries({ queryKey: ["hotel", "orders", "all"] });
+      qc.invalidateQueries({ queryKey: ["lounge", "orders", "open"] });
+      qc.invalidateQueries({ queryKey: ["lounge", "orders", "all"] });
       toast({ title: "Commande fermée" });
     },
     onError: (e: any) =>
@@ -166,12 +165,12 @@ const HotelDashboard = () => {
       if (format === "excel") {
         const wb = XLSX.utils.book_new();
         const synthData = [
-          ["Rapport Hôtel", ""],
+          ["Rapport Bar", ""],
           ["Période", data.metadata.periode],
           ["Export", data.metadata.exportDate],
           ["Total commandes", data.metadata.totalCommandes],
           ["", ""],
-          ["Chambres / Tables", `${data.statistiques.tablesOccupees}/${data.statistiques.totalTables}`],
+          ["Tables occupées", `${data.statistiques.tablesOccupees}/${data.statistiques.totalTables}`],
           ["Commandes actives", data.statistiques.commandesActives],
           ["CA Journalier", data.statistiques.caJournalier],
           ["Articles servis", data.statistiques.articlesServis],
@@ -195,7 +194,7 @@ const HotelDashboard = () => {
         XLSX.utils.book_append_sheet(wb, wsF, "Commandes fermées");
 
         const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        saveAs(new Blob([wbout], { type: "application/octet-stream" }), `hotel-rapport-${today}.xlsx`);
+        saveAs(new Blob([wbout], { type: "application/octet-stream" }), `bar-rapport-${today}.xlsx`);
       } else if (format === "csv") {
         let csv = "\uFEFFRapport Bar\n";
         csv += `Période,${data.metadata.periode}\nExport,${data.metadata.exportDate}\n\n`;
@@ -203,20 +202,20 @@ const HotelDashboard = () => {
         [...data.commandesActives, ...data.commandesFermees].forEach((c) => {
           csv += `${c.id},${c.table},${c.statut},"${c.articles}",${c.total},${c.heure},${c.date}\n`;
         });
-        saveAs(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `hotel-rapport-${today}.csv`);
+        saveAs(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `bar-rapport-${today}.csv`);
       } else if (format === "json") {
         saveAs(
           new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
-          `hotel-rapport-${today}.json`
+          `bar-rapport-${today}.json`
         );
       } else if (format === "txt") {
         const lines = [
           "========================================",
-          "         RAPPORT HÔTEL",
+          "         RAPPORT BAR",
           `Période: ${data.metadata.periode}`,
           `Export: ${data.metadata.exportDate}`,
           "========================================",
-          `Chambres / Tables : ${data.statistiques.tablesOccupees}/${data.statistiques.totalTables}`,
+          `Tables occupées : ${data.statistiques.tablesOccupees}/${data.statistiques.totalTables}`,
           `Commandes actives : ${data.statistiques.commandesActives}`,
           `CA Journalier : ${fmt(data.statistiques.caJournalier)} Ar`,
           `Articles servis : ${data.statistiques.articlesServis}`,
@@ -227,7 +226,7 @@ const HotelDashboard = () => {
         ];
         saveAs(
           new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8;" }),
-          `hotel-rapport-${today}.txt`
+          `bar-rapport-${today}.txt`
         );
       }
 
@@ -258,9 +257,9 @@ const HotelDashboard = () => {
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
-                <HotelIcon  className="h-8 w-8 text-yellow-600" /> hôtel
+                <Wine className="h-8 w-8 text-purple-600" /> Lounge Bar
               </h1>
-              <p className="text-muted-foreground">Tableau de bord hôtel</p>
+              <p className="text-muted-foreground">Tableau de bord du bar</p>
             </div>
             <div className="relative">
               <Button
@@ -310,7 +309,7 @@ const HotelDashboard = () => {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
-              title="Chambres / Tables"
+              title="Tables occupées"
               value={`${occupiedTableCodes.length}/${totalTables}`}
               icon={Wine}
               variant="default"
@@ -342,11 +341,11 @@ const HotelDashboard = () => {
                 <CardTitle>Actions rapides</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/hotel/pos")}>
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/bar/pos")}>
                   <ClipboardList className="mr-2 h-4 w-4" /> Nouvelle commande
                 </Button>
-                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/hotel/menu")}>
-                  <HotelIcon  className="mr-2 h-4 w-4" /> Carte hôtel
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/bar/menu")}>
+                  <Wine className="mr-2 h-4 w-4" /> Carte du bar
                 </Button>
                 <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/inventory")}>
                   <Package className="mr-2 h-4 w-4" /> Inventaire
@@ -368,7 +367,7 @@ const HotelDashboard = () => {
                     <div key={order.id} className="p-4 border border-border rounded-lg hover:shadow-elegant transition-all duration-200">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
-                          <HotelIcon className="h-4 w-4 text-yellow-600" />
+                          <Wine className="h-4 w-4 text-purple-600" />
                           <span className="font-semibold">
                             {order.id} - {order.table?.code || "N/A"}
                           </span>
@@ -420,7 +419,7 @@ const HotelDashboard = () => {
                       <div key={order.id} className="p-4 border border-border rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
-                            <HotelIcon className="h-4 w-4 text-success" />
+                            <Wine className="h-4 w-4 text-success" />
                             <span className="font-semibold">
                               {order.id} - {order.table?.code || "N/A"}
                             </span>
@@ -470,4 +469,4 @@ const HotelDashboard = () => {
   );
 };
 
-export default HotelDashboard;
+export default Bar;

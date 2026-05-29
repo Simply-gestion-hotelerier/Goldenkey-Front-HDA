@@ -8,8 +8,19 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { ReactNode, useState } from "react";
 // Import des pages
 import Index from "./pages/Index";
+import HotelRoom from "./pages/HotelRoom";
+
 import Hotel from "./pages/Hotel";
+import HotelPOS from "./pages/HotelPOS";
+import HotelMenu from "./pages/HotelMenu";
+import Bar from "./pages/Bar";
+import BarPOS from "./pages/BarPOS";
+import BarMenu from "./pages/BarMenu";
 import Restaurant from "./pages/Restaurant";
+import RestaurantMenu from "./pages/RestaurantMenu";
+import Casino from "./pages/Casino";
+import CasinoPos from "./pages/CasinoPOS";
+import CasinoMenu from "./pages/CasinoMenu";
 
 import NotFound from "./pages/NotFound";
 import HotelPlan from "./pages/HotelPlan";
@@ -25,7 +36,6 @@ import Settings from "./pages/Settings";
 import RoomsManage from "./pages/RoomsManage";
 import Team from "./pages/Team";
 import Notifications from "./pages/Notifications";
-import RestaurantMenu from "./pages/RestaurantMenu";
 import DailyInvoice from "./pages/DailyInvoice";
 import LoginPage from "./pages/LoginPage";
 import Reservations from "./pages/Reservations";
@@ -44,14 +54,17 @@ const queryClient = new QueryClient();
 // === Configuration des accès par rôle ===
 const roleAccess: Record<Role, string[]> = {
   admin: [
-    "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
+    "/", "/hotelrooms", "/reservations", "/hotel/plan", "/rooms/manage", "/crm",
+    "/hotel", "/hotel/pos", "/hotel/menu",
+    "/bar", "/bar/menu", "/bar/pos",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
-    "/pub", "/pub/menu", "/bar", "/bar/pos", 
-    "/crm", "/inventory", "/invoices/daily", "/cash", "/reports",
+    "/casino", "/casino/pos", "/casino/menu",
+     "/bar", "/bar/menu", "/bar/pos",
+    "/inventory", "/invoices/daily", "/cash", "/reports",
     "/housekeeping", "/notifications", "/settings", "/team" , "/room-inspection", "/invoices/client"
   ],
   manager: [
-    "/hotel", "/reservations", "/restaurant", "/pub",
+    "/hotelrooms", "/reservations", "/restaurant", "/pub",
     "/crm", "/reports", "/notifications", "/settings", "/cash",
     "/invoices/daily", "/housekeeping", "/room-inspection"
   ],
@@ -163,16 +176,22 @@ const AuthenticatedRoutes = () => (
   <AuthenticatedLayout>
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/hotel" element={<Hotel />} />
+      <Route path="/hotelrooms" element={<HotelRoom />} />
       <Route path="/reservations" element={<Reservations />} />
       <Route path="/hotel/plan" element={<HotelPlan />} />
-      <Route path="/rooms/manage" element={<RoomsManage />} />
+      <Route path="/rooms/manage" element={<RoomsManage />} />     
+      <Route path="/hotel" element={<Hotel />} /> 
+      <Route path="/hotel/pos" element={<HotelPOS />} />
+      <Route path="/hotel/menu" element={<HotelMenu />} />
+      <Route path="/bar" element={<Bar />} /> 
+      <Route path="/bar/menu" element={<BarMenu />} />  
+      <Route path="/bar/pos" element={<BarPOS />} />     
       <Route path="/restaurant" element={<Restaurant />} />
-      <Route path="/restaurant/kds" element={<RestaurantKDS />} />
       <Route path="/restaurant/pos" element={<RestaurantPOS />} />
-      <Route path="/restaurant/menu" element={<RestaurantMenu />} />
-      
-     
+      <Route path="/restaurant/menu" element={<RestaurantMenu />} />     
+      <Route path="/casino" element={<Casino />} /> 
+      <Route path="/casino/pos" element={<CasinoPos />} />
+      <Route path="/casino/menu" element={<CasinoMenu />} />
       <Route path="/crm" element={<CRM />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/invoices/client" element={<GuestInvoice />} />
@@ -183,7 +202,8 @@ const AuthenticatedRoutes = () => (
       <Route path="/room-inspection" element={<RoomInspection />} />
       <Route path="/team" element={<Team />} />
       <Route path="/notifications" element={<Notifications />} />
-      <Route path="/settings" element={<Settings />} />
+      <Route path="/settings" element={<Settings />} />      
+      <Route path="/restaurant/kds" element={<RestaurantKDS />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </AuthenticatedLayout>

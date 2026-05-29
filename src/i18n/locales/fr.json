@@ -84,7 +84,6 @@
     "price": "Prix",
     "capacity": "Capacité"
   },
-
   "nav": {
     "dashboard": "Tableau de bord",
     "hotel": "Hôtel",
@@ -105,9 +104,18 @@
     "settings": "Paramètres",
     "team": "Gestion d'équipe",
     "clientInvoice": "Facture Client",
-    "bar": "Bar"
+    "bar": "Bar",
+    "group": {
+      "lodging": "HÉBERGEMENT",
+      "hotel_fb": "HÔTEL F&B",
+      "restaurant": "RESTAURANT",
+      "bar": "BAR",
+      "casino": "CASINO",
+      "finance": "FINANCES",
+      "stock": "STOCK"
+    },
+    "hotelrooms": "Chambres d'hôtel"
   },
-
   "login": {
     "hotelManagement": "Système de Gestion Hôtelière",
     "title": "Bienvenue",
@@ -124,7 +132,6 @@
     "error": "Identifiants invalides",
     "connectionError": "Erreur de connexion. Veuillez réessayer."
   },
-
   "inventory": {
     "title": "Gestion des Stocks",
     "subtitle": "Gérez vos articles, stocks et mouvements",
@@ -249,7 +256,6 @@
     "summary": "Synthèse",
     "allStores": "Tous les magasins"
   },
-
   "export": {
     "excel": "Excel",
     "excelDescription": "Format Excel avec feuilles de calcul",
@@ -266,7 +272,6 @@
     "exportError": "Erreur lors de l'export",
     "formats": "Formats d'export"
   },
-
   "reports": {
     "title": "Rapports",
     "subtitle": "Analyse des ventes, commandes et stocks",
@@ -287,15 +292,12 @@
     "ofRestaurantRevenue": "du CA Restaurant",
     "paymentBreakdown": "Répartition des paiements",
     "hotelReservationsPeriod": "Réservations Hôtel (période)",
- 
     "serviceCount": "Nombre de prestations",
     "totalServices": "Total prestations",
-
     "hotelName": "Hôtel de l'Avenue — Rapport",
     "printedAt": "Imprimé le",
     "restaurantSales": "Ventes Restaurant",
     "hotelSales": "Ventes Hôtel",
-  
     "grandTotal": "Total général",
     "restaurantBarOrders": "Restaurant & Bar — Commandes",
     "total": "Total",
@@ -327,7 +329,6 @@
     "booked": "Réservé",
     "totals": "Totaux",
     "completed": "Terminées",
-
     "selectPeriod": "Sélectionnez une période pour afficher les rapports",
     "due": "dû",
     "footer": "Système de gestion hôtelière — Document généré automatiquement",
@@ -339,7 +340,6 @@
     "topRevenueRooms": "Chambres génératrices de CA",
     "topSpendingClients": "Clients les plus dépensiers"
   },
-
   "rooms": {
     "roomManagement": "Gestion des chambres",
     "roomAdded": "Chambre ajoutée",
@@ -390,50 +390,49 @@
     "capacity": "Capacité",
     "bedType": "Type de lit"
   },
-"hotel": {
-  "configuration": "Configuration",
-  "statusAvailable": "Disponible",
-  "statusOccupied": "Occupée",
-  "statusCleaning": "Nettoyage",
-  "statusMaintenance": "Maintenance",
-  "statusOutOfOrder": "Hors service",
-  "available": "Disponible",
-  "occupied": "Occupée",
-  "title": "Gestion Hôtel",
-  "subtitle": "Arrivées • Départs • Inspections • Inventaire",
-  "room": "Chambre",
-  "roomNumber": "Chambre {number}",
-  "guest": "Client",
-  "checkIn": "Arrivée",
-  "checkOut": "Départ",
-  "nights": "nuits",
-  "rate": "Tarif",
-  "totalRooms": "Total chambres",
-  "occupancyRate": "Taux d'occupation",
-  "occupiedRooms": "Chambres occupées",
-  "availableRooms": "Chambres disponibles",
-  "cleaning": "Nettoyage",
-  "maintenance": "Maintenance",
-  "quickActions": "Actions rapides",
-  "newArrival": "Nouvelle arrivée",
-  "newDeparture": "Nouveau départ",
-  "roomInspection": "Inspection chambre",
-  "stockManagement": "Gestion des stocks",
-  "roomStatus": "État des chambres",
-  "departure": "Départ",
-  "book": "Réserver",
-  "newReservation": "Nouvelle réservation",
-  "guestName": "Nom du client",
-  "arrivalDate": "Date d'arrivée",
-  "departureDate": "Date de départ",
-  "createReservation": "Créer la réservation",
-  "immediateCheckin": "Arrivée immédiate",
-  "selectRoom": "Sélectionnez une chambre",
-  "noDataToExport": "Aucune donnée à exporter",
-  "exportSuccess": "Export réussi",
-  "type": "Type"
-},
-
+  "hotel": {
+    "configuration": "Configuration",
+    "statusAvailable": "Disponible",
+    "statusOccupied": "Occupée",
+    "statusCleaning": "Nettoyage",
+    "statusMaintenance": "Maintenance",
+    "statusOutOfOrder": "Hors service",
+    "available": "Disponible",
+    "occupied": "Occupée",
+    "title": "Gestion Hôtel",
+    "subtitle": "Arrivées • Départs • Inspections • Inventaire",
+    "room": "Chambre",
+    "roomNumber": "Chambre {number}",
+    "guest": "Client",
+    "checkIn": "Arrivée",
+    "checkOut": "Départ",
+    "nights": "nuits",
+    "rate": "Tarif",
+    "totalRooms": "Total chambres",
+    "occupancyRate": "Taux d'occupation",
+    "occupiedRooms": "Chambres occupées",
+    "availableRooms": "Chambres disponibles",
+    "cleaning": "Nettoyage",
+    "maintenance": "Maintenance",
+    "quickActions": "Actions rapides",
+    "newArrival": "Nouvelle arrivée",
+    "newDeparture": "Nouveau départ",
+    "roomInspection": "Inspection chambre",
+    "stockManagement": "Gestion des stocks",
+    "roomStatus": "État des chambres",
+    "departure": "Départ",
+    "book": "Réserver",
+    "newReservation": "Nouvelle réservation",
+    "guestName": "Nom du client",
+    "arrivalDate": "Date d'arrivée",
+    "departureDate": "Date de départ",
+    "createReservation": "Créer la réservation",
+    "immediateCheckin": "Arrivée immédiate",
+    "selectRoom": "Sélectionnez une chambre",
+    "noDataToExport": "Aucune donnée à exporter",
+    "exportSuccess": "Export réussi",
+    "type": "Type"
+  },
   "hotelPlan": {
     "available": "Disponible",
     "occupied": "Occupée",
@@ -475,7 +474,6 @@
     "retry": "Réessayer",
     "availableRooms": "{avail}/{total} chambre(s) disponible(s)"
   },
-
   "reservations": {
     "title": "Réservations",
     "newReservation": "Nouvelle réservation",
@@ -606,7 +604,6 @@
     "optional": "Optionnel",
     "noRoomsAvailable": "Aucune chambre disponible"
   },
-
   "housekeeping": {
     "title": "Housekeeping",
     "subtitle": "Suivi et statut des chambres",
@@ -622,7 +619,6 @@
     "statusUpdatedDesc": "Le statut de la chambre a été mis à jour.",
     "room": "Chambre"
   },
-
   "dailyInvoice": {
     "title": "Facture Journalière",
     "subtitle": "Choisissez un département et une date, puis exportez en PDF ou imprimez en 80mm",
@@ -636,7 +632,6 @@
     "hotel": "Hôtel",
     "restaurant": "Restaurant",
     "pub": "Pub / Bar",
-   
     "occupancyRate": "Taux d'occupation",
     "arrivals": "Arrivées",
     "departures": "Départs",
@@ -688,12 +683,8 @@
     "hotelInvoice": "HÔTEL",
     "restaurantInvoice": "RESTAURANT",
     "pubInvoice": "PUB / BAR",
-  
     "dailyInvoiceTitle": "*** FACTURE JOURNALIÈRE ***"
   },
-
- 
-
   "restaurant": {
     "subtitle": "Commandes • Cuisine • Inventaire • Caisse",
     "hotelName": "Hôtel de l'Avenue  -  Nail Bar",
@@ -743,9 +734,86 @@
     "ordersCount": "commandes au total",
     "summary": "Synthèse",
     "closedOrders": "Commandes terminées",
-    "total": "Total"
+    "total": "Total",
+    "dishManagement": "Gestion des plats",
+    "dishSubtitle": "Création • Ingrédients • Coûts • Marges",
+    "dishName": "Nom du plat",
+    "dishNamePlaceholder": "Ex: Pizza Margherita",
+    "descriptionPlaceholder": "Description du plat...",
+    "selectCategory": "Sélectionner une catégorie",
+    "categoryAppetizer": "Apéritif",
+    "categoryMainCourse": "Plat principal",
+    "categoryDessert": "Dessert",
+    "categoryBeverage": "Boisson",
+    "categorySideDish": "Accompagnement",
+    "categoryBreakfast": "Petit-déjeuner",
+    "categorySnack": "Snack",
+    "preparationTime": "Temps de préparation",
+    "preparationTimeMin": "Temps (min)",
+    "difficulty": "Difficulté",
+    "difficultyEasy": "Facile",
+    "difficultyMedium": "Moyen",
+    "difficultyHard": "Difficile",
+    "ingredientsCount": "Nb d'ingrédients",
+    "ingredientsCost": "Coût ingrédients",
+    "margin": "Marge",
+    "totalIngredientsCost": "Coût total des ingrédients",
+    "addIngredient": "Ajouter un ingrédient",
+    "selectItemAndQuantity": "Veuillez sélectionner un article et une quantité valide",
+    "selectItemAndQuantityDesc": "Sélectionnez un article et sa quantité",
+    "quantityNeeded": "Quantité nécessaire",
+    "totalCost": "Coût total",
+    "ingredientAdded": "Ingrédient ajouté",
+    "ingredientAddedDesc": "a été ajouté au plat",
+    "noIngredientsConfirm": "⚠️ Aucun ingrédien n'a été ajouté à ce plat.\n\nLe coût du plat sera de 0 Ar et la marge ne pourra pas être calculée.\n\nVoulez-vous quand même créer ce plat ?",
+    "dishUpdated": "Plat mis à jour",
+    "dishUpdatedDesc": "a été mis à jour avec {{count}} ingrédient(s)",
+    "dishCreated": "Plat créé",
+    "dishCreatedDesc": "a été créé avec {{count}} ingrédient(s)",
+    "stockWarning": "⚠️ Attention - Stock insuffisant",
+    "stockWarningDesc": "Le plat a été créé mais certains ingrédients ont un stock insuffisant. Veuillez réapprovisionner.",
+    "saveError": "Erreur lors de l'enregistrement du plat",
+    "dishDeleted": "Plat supprimé avec succès",
+    "deleteError": "Erreur lors de la suppression du plat",
+    "editDish": "Modifier le plat",
+    "addDish": "Nouveau plat",
+    "editDishDesc": "Modifier les informations du plat",
+    "addDishDesc": "Créer un nouveau plat avec ses ingrédients",
+    "noIngredients": "Aucun ingrédient ajouté",
+    "clickToAddIngredient": "Cliquez sur \"Ajouter un ingrédient\" pour commencer",
+    "createDish": "Créer le plat",
+    "searchDish": "Rechercher un plat...",
+    "noDishes": "Aucun plat créé",
+    "startAddingDishes": "Commencez par ajouter votre premier plat",
+    "cost": "Coût",
+    "noIngredientsForDish": "Aucun ingrédient pour ce plat",
+    "exportDishes": "Exporter les plats",
+    "dishes": "plat(s)",
+    "dishesCreated": "Plats créés",
+    "dishesWithIngredients": "Plats avec ingrédients",
+    "dishesWithoutIngredients": "Plats sans ingrédients",
+    "newDish": "Nouveau plat",
+    "profitMargin": "Marge bénéficiaire",
+    "dishReport": "RAPPORT DES PLATS - Hôtel de l'Avenue",
+    "generationDate": "Date de génération",
+    "statistics": "STATISTIQUES",
+    "totalDishes": "Total plats",
+    "activeDishes": "Plats actifs",
+    "inactiveDishes": "Plats inactifs",
+    "averagePrice": "Prix moyen",
+    "totalIngredients": "Total ingrédients",
+    "dishList": "LISTE DES PLATS",
+    "reportFooter": "Plats générés automatiquement par Hôtel de l'Avenue",
+    "loadDishesError": "Impossible de charger les plats",
+    "loadItemsError": "Impossible de charger les articles",
+    "selectItemAndQuantity": "Veuillez sélectionner un article et une quantité valide",
+    "invalidQuantity": "Quantité invalide",
+    "quantityMustBePositive": "La quantité doit être supérieure à 0",
+    "components": "Composants",
+    "itemsAvailable": "article(s) disponible(s)",
+    "unitCost": "Coût unitaire",
+    "exportSuccess": "Export réussi"
   },
-
   "crm": {
     "title": "CRM & Relations Clients",
     "subtitle": "Base clients • Séjours • Communications",
@@ -787,7 +855,6 @@
     "deleteWarning": "Cette action est irréversible. Le client sera définitivement supprimé.",
     "hideWarning": "Ce client sera masqué de la liste. Vous pourrez le réafficher plus tard.",
     "sourceHotel": "Hôtel",
-   
     "sourceBar": "Bar",
     "sourceRestaurant": "Restaurant",
     "loadingError": "Erreur de chargement des clients",
@@ -796,7 +863,6 @@
     "emailRequired": "L'email est requis",
     "customersExported": "clients exportés en {format}"
   },
-
   "errors": {
     "generic": "Une erreur est survenue",
     "network": "Erreur de connexion",
@@ -805,7 +871,6 @@
     "validation": "Erreur de validation",
     "stockInsufficient": "Stock insuffisant pour certains ingrédients"
   },
-
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
@@ -814,7 +879,6 @@
     "delete": "Supprimer",
     "markAsRead": "Marquer comme lu"
   },
-
   "dashboard": {
     "title": "Hôtel de l'Avenue",
     "subtitle": "Plateforme de gestion complète",
@@ -826,10 +890,8 @@
     "occupiedRooms": "Chambres occupées",
     "restaurantTables": "Tables Restaurant",
     "barTables": "Tables Bar",
- 
     "reportAndAnalysis": "Rapports & Analyse des données"
   },
-
   "profile": {
     "myAccount": "Mon compte",
     "logout": "Déconnexion",
@@ -841,7 +903,6 @@
     "security": "Sécurité",
     "settings": "Paramètres"
   },
-
   "settings": {
     "title": "Paramètres",
     "subtitle": "Compte • Thème",
@@ -858,7 +919,6 @@
     "profileUpdateError": "Erreur lors de la mise à jour du profil",
     "imageTooLarge": "L'image ne doit pas dépasser 2 Mo"
   },
-
   "recentActivity": {
     "title": "Activité Récente",
     "secondsAgo": "Il y a {{seconds}}s",
@@ -873,14 +933,12 @@
     "order": "Commande",
     "items": "article(s)",
     "serviceCompleted": "Prestation Terminée",
-
     "stockMovement": "Stock {{type}}",
     "in": "Entrée",
     "out": "Sortie",
     "item": "Article",
     "noActivity": "Aucune activité disponible"
   },
-
   "restaurantPos": {
     "title": "Prise de commande",
     "subtitle": "Tables → Plats → Paiement",
@@ -1090,7 +1148,6 @@
     "folioSubtitle": "Clients présents · hébergement + commandes + statuts cuisine",
     "noGuestsToday": "Aucun client présent aujourd'hui"
   },
-
   "guestInvoice": {
     "title": "Facture client (folio)",
     "subtitle": "Recherchez un client — commandes payées et impayées, impression 80 mm ou A4.",
