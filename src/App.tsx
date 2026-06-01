@@ -54,7 +54,7 @@ const queryClient = new QueryClient();
 // === Configuration des accès par rôle ===
 const roleAccess: Record<Role, string[]> = {
   admin: [
-    "/", "/hotelrooms", "/reservations", "/hotel/plan", "/rooms/manage", "/crm",
+    "/", "/hotelrooms", "/reservations", "/hotelrooms/plan", "/rooms/manage", "/crm",
     "/hotel", "/hotel/pos", "/hotel/menu",
     "/bar", "/bar/menu", "/bar/pos",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
@@ -69,7 +69,7 @@ const roleAccess: Record<Role, string[]> = {
     "/invoices/daily", "/housekeeping", "/room-inspection"
   ],
   reception: [
-    "/reservations", "/hotel/plan", "/crm", "/notifications", "/settings"
+    "/reservations", "/hotelrooms/plan", "/crm", "/notifications", "/settings"
   ],
   housekeeping: [
     "/housekeeping", "/notifications", "/settings", "/room-inspection"
@@ -178,7 +178,7 @@ const AuthenticatedRoutes = () => (
       <Route path="/" element={<Index />} />
       <Route path="/hotelrooms" element={<HotelRoom />} />
       <Route path="/reservations" element={<Reservations />} />
-      <Route path="/hotel/plan" element={<HotelPlan />} />
+      <Route path="/hotelrooms/plan" element={<HotelPlan />} />
       <Route path="/rooms/manage" element={<RoomsManage />} />     
       <Route path="/hotel" element={<Hotel />} /> 
       <Route path="/hotel/pos" element={<HotelPOS />} />

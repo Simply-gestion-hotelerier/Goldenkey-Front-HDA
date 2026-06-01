@@ -1,4 +1,4 @@
-// src/pages/hotel/Reservations.tsx
+// src/pages/hotelrooms/Reservations.tsx
 import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -750,13 +750,13 @@ const Reservations = () => {
 
   const { data: reservations = [], isLoading, refetch } = useQuery<Reservation[]>({
     queryKey: ["hotel", "reservations"],
-    queryFn: () => api.get<Reservation[]>("/hotel/reservations"),
+    queryFn: () => api.get<Reservation[]>("/hotelrooms/reservations"),
     staleTime: 30_000,
   });
 
   const { data: rooms = [] } = useQuery<Room[]>({
     queryKey: ["hotel", "rooms"],
-    queryFn: () => api.get<Room[]>("/hotel/rooms"),
+    queryFn: () => api.get<Room[]>("/hotelrooms/rooms"),
     staleTime: 30_000,
   });
 
@@ -823,7 +823,7 @@ const Reservations = () => {
 
   const createMut = useMutation({
     mutationFn: () =>
-      api.post("/hotel/reservations", {
+      api.post("/hotelrooms/reservations", {
         roomId: parseInt(form.roomId),
         guest: {
           fullName: form.guestName.trim(),
@@ -853,9 +853,9 @@ const Reservations = () => {
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => {
-      if (status === "checked_in")  return api.post(`/hotel/reservations/${id}/checkin`);
-      if (status === "checked_out") return api.post(`/hotel/reservations/${id}/checkout`);
-      return api.patch(`/hotel/reservations/${id}`, { status });
+      if (status === "checked_in")  return api.post(`/hotelrooms/reservations/${id}/checkin`);
+      if (status === "checked_out") return api.post(`/hotelrooms/reservations/${id}/checkout`);
+      return api.patch(`/hotelrooms/reservations/${id}`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hotel", "reservations"] });
@@ -867,7 +867,7 @@ const Reservations = () => {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => api.del(`/hotel/reservations/${id}`),
+    mutationFn: (id: number) => api.del(`/hotelrooms/reservations/${id}`),
     onSuccess: () => {
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ["hotel", "reservations"] });

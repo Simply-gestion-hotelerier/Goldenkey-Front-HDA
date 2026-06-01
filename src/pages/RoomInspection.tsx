@@ -16,7 +16,7 @@ export default function RoomInspection() {
   const qc = useQueryClient();
   const { data: rooms = [] } = useQuery({ 
     queryKey: ["hotel","rooms"], 
-    queryFn: () => api.get<any[]>("/hotel/rooms") 
+    queryFn: () => api.get<any[]>("/hotelrooms/rooms") 
   });
   const [roomId, setRoomId] = useState<number | null>(null);
   const [cleanliness, setCleanliness] = useState<string>(t('roomInspection.clean'));
@@ -27,7 +27,7 @@ export default function RoomInspection() {
   }, [rooms, roomId]);
 
   const setStatus = useMutation({
-    mutationFn: (id:number) => api.patch(`/hotel/rooms/${id}/status`, { status: 'available' }),
+    mutationFn: (id:number) => api.patch(`/hotelrooms/rooms/${id}/status`, { status: 'available' }),
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: ["hotel","rooms"] }); 
       toast({ 

@@ -38,7 +38,7 @@ const Index = () => {
 
   const { data: rooms = [] } = useQuery({
     queryKey: ["hotel", "rooms"],
-    queryFn: () => api.get<any[]>("/hotel/rooms"),
+    queryFn: () => api.get<any[]>("/hotelrooms/rooms"),
     enabled: canReadRooms,
     refetchInterval: canReadRooms ? 10000 : false,
     refetchOnWindowFocus: canReadRooms,
@@ -47,7 +47,7 @@ const Index = () => {
 
   const { data: reservations = [] } = useQuery({
     queryKey: ["hotel", "reservations", today],
-    queryFn: () => api.get<any[]>(`/hotel/reservations?date=${today}`),
+    queryFn: () => api.get<any[]>(`/hotelrooms/reservations?date=${today}`),
     enabled: canReadReservations,
     refetchInterval: canReadReservations ? 10000 : false,
     refetchOnWindowFocus: canReadReservations,

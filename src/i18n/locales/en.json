@@ -313,7 +313,7 @@
     "arrivals": "Arrivals",
     "departures": "Departures",
     "inHouse": "In house",
-    "reservations": "Reservations for {date}",
+    "reservations": "Reservations for ",
     "noReservations": "No reservations for this date",
     "guest": "Guest",
     "room": "Room",
@@ -360,7 +360,11 @@
     "hotelInvoice": "HOTEL",
     "restaurantInvoice": "RESTAURANT",
     "pubInvoice": "PUB / BAR",
-    "dailyInvoiceTitle": "*** DAILY INVOICE ***"
+    "dailyInvoiceTitle": "*** DAILY INVOICE ***",
+    "hotel_reservations": "Hotel Reservations",
+    "hotel_services": "Hotel Services",
+    "lounge": "Lounge / Bar",
+    "casino": "Casino"
   },
   "export": {
     "title": "Export",

@@ -42,7 +42,7 @@ export function RecentActivity() {
 
   const { data: reservations = [] } = useQuery({
     queryKey: ["hotel", "reservations", ymd],
-    queryFn: () => api.get<any[]>(`/hotel/reservations?date=${ymd}`),
+    queryFn: () => api.get<any[]>(`/hotelrooms/reservations?date=${ymd}`),
     enabled: canReadReservations,
     refetchInterval: canReadReservations ? 10000 : false,
     staleTime: 5000,

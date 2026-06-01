@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-export type Department = "hotel" | "restaurant" | "pub";
+export type Department = "hotel_reservations" | "restaurant" | "lounge" | "hotel_services" | "casino";
 
 export type RoomStatus = "occupied" | "clean" | "dirty" | "inspected" | "out-of-order";
 

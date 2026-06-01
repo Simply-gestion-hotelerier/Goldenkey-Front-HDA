@@ -130,6 +130,7 @@ export default function HotelMenu() {
   const [editingDish, setEditingDish] = useState<BarDish | null>(null);
   const [selectedItem, setSelectedItem] = useState<ItemForDish | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
+  const [quantityInput, setQuantityInput] = useState<string>("");
   const [ingredients, setIngredients] = useState<DishIngredient[]>([]);
   const [loading, setLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -152,6 +153,35 @@ export default function HotelMenu() {
     loadItems();
   }, []);
 
+  // ── Quantity helpers ────────────────────────────────────────────────────────
+
+  const isQuantityInputValid = (value: string): boolean => {
+    if (value === "" || value === ".") return false;
+    return /^\d+\.?\d*$/.test(value) && parseFloat(value) > 0;
+  };
+
+  const getQuantityErrorMessage = (): string | null => {
+    if (quantityInput === "") return null;
+    if (!/^\d*\.?\d*$/.test(quantityInput) || quantityInput === ".") {
+      return "Quantité invalide";
+    }
+    if (/^\d+\.?\d*$/.test(quantityInput) && parseFloat(quantityInput) <= 0) {
+      return "La quantité doit être supérieure à 0";
+    }
+    return null;
+  };
+
+  const resetQuantityFields = () => {
+    setQuantity(0);
+    setQuantityInput("");
+  };
+
+  const closeIngredientDialog = () => {
+    setShowIngredientDialog(false);
+    setSelectedItem(null);
+    resetQuantityFields();
+  };
+
   const loadDishes = async () => {
     try {
       const response = await api.get<any>("/hotel/dishes");
@@ -166,13 +196,23 @@ export default function HotelMenu() {
     try {
       const response = await api.get<any>("/hotel/dishes/for-hotel");
       const data = response?.data ?? response ?? [];
-      setItems(Array.isArray(data) ? data : []);
+      const normalized = (Array.isArray(data) ? data : []).map((item: any) => ({
+        ...item,
+        costPrice: Number(item.costPrice) || 0,
+        availableQty: item.availableQty !== undefined ? Number(item.availableQty) : undefined,
+      }));
+      setItems(normalized);
     } catch (error) {
       // fallback to generic items endpoint
       try {
-        const response = await api.get<any>("/hotel/dishes/for-hotel");
+        const response = await api.get<any>("/dishes/for-dishes");
         const data = response?.data ?? response ?? [];
-        setItems(Array.isArray(data) ? data : []);
+        const normalized = (Array.isArray(data) ? data : []).map((item: any) => ({
+          ...item,
+          costPrice: Number(item.costPrice) || 0,
+          availableQty: item.availableQty !== undefined ? Number(item.availableQty) : undefined,
+        }));
+        setItems(normalized);
       } catch {
         setItems([]);
       }
@@ -219,15 +259,29 @@ export default function HotelMenu() {
   };
 
   const addIngredient = () => {
-    if (!selectedItem || quantity <= 0) {
-      toast({ title: "Sélectionnez un article et une quantité valide", variant: "destructive" });
+    if (!selectedItem) {
+      toast({ title: "Sélectionnez un article", variant: "destructive" });
       return;
     }
+
+    if (!isQuantityInputValid(quantityInput)) {
+      toast({
+        title: "Quantité invalide",
+        description: getQuantityErrorMessage() || "Veuillez saisir une quantité valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const unitCost = Number(selectedItem.costPrice) || 0;
     const existing = ingredients.find((i) => i.itemId === selectedItem.id);
     if (existing) {
+      const newQty = existing.quantity + quantity;
       setIngredients((prev) =>
         prev.map((i) =>
-          i.itemId === selectedItem.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.itemId === selectedItem.id
+            ? { ...i, quantity: newQty, cost: unitCost * newQty }
+            : i
         )
       );
     } else {
@@ -238,13 +292,13 @@ export default function HotelMenu() {
           itemName: selectedItem.name,
           quantity,
           unit: selectedItem.unit,
-          cost: selectedItem.costPrice * quantity,
-          costPrice: selectedItem.costPrice,
+          cost: unitCost * quantity,
+          costPrice: unitCost,
         },
       ]);
     }
     setSelectedItem(null);
-    setQuantity(0);
+    resetQuantityFields();
     setShowIngredientDialog(false);
   };
 
@@ -277,9 +331,9 @@ export default function HotelMenu() {
   };
 
   const deleteDish = async (id: number) => {
-    if (!confirm("Supprimer cet article bar ? Les stocks seront restaurés.")) return;
+    if (!confirm("Supprimer cet article hôtel ? Les stocks seront restaurés.")) return;
     try {
-      await api.del(`/bar/dishes/${id}`);
+      await api.del(`/hotel/dishes/${id}`);
       toast({ title: "Article hôtel supprimé" });
       await loadDishes();
     } catch (error: any) {
@@ -354,6 +408,9 @@ export default function HotelMenu() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const quantityError = getQuantityErrorMessage();
+  const quantityHasError = quantityInput !== "" && quantityError !== null;
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -365,7 +422,7 @@ export default function HotelMenu() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
-                <HotelIcon className="h-8 w-8 text-blue-700" /> Room Service / Menu Hôtel
+                <HotelIcon className="h-8 w-8 text-yellow-600" /> Room Service / Menu Hôtel
               </h1>
               <p className="text-muted-foreground">{dishes.length} article(s)</p>
             </div>
@@ -635,6 +692,7 @@ export default function HotelMenu() {
                         <span>{ing.itemName}</span>
                         <div className="flex items-center gap-3">
                           <span className="text-muted-foreground">{ing.quantity} {ing.unit}</span>
+                          <span className="text-xs text-green-600">{fmt(ing.cost)} Ar</span>
                           <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => removeIngredient(ing.itemId)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -659,15 +717,17 @@ export default function HotelMenu() {
       </Dialog>
 
       {/* ── Dialog Add Ingredient ─────────────────────────────────────────── */}
-      <Dialog open={showIngredientDialog} onOpenChange={setShowIngredientDialog}>
+      <Dialog open={showIngredientDialog} onOpenChange={(open) => !open && closeIngredientDialog()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Ajouter un ingrédient</DialogTitle>
             <DialogDescription>Sélectionner un article du stock hôtel</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+
+            {/* Article selector */}
             <div>
-              <label className="text-sm font-medium mb-1 block">Article (stock bar)</label>
+              <label className="text-sm font-medium mb-1 block">Article (stock hôtel)</label>
               <Select
                 onValueChange={(v) => setSelectedItem(items.find((i) => i.id === Number(v)) || null)}
               >
@@ -683,21 +743,56 @@ export default function HotelMenu() {
                 </SelectContent>
               </Select>
             </div>
-            {selectedItem && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">Quantité ({selectedItem.unit})</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
+
+            {/* Quantity input — free text with decimal support */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium block">
+                Quantité{selectedItem ? ` (${selectedItem.unit})` : ""}
+              </label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="Ex: 0.5, 1, 2.75…"
+                value={quantityInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                    setQuantityInput(raw);
+                    const parsed = parseFloat(raw);
+                    setQuantity(!isNaN(parsed) ? parsed : 0);
+                  }
+                }}
+                className={quantityHasError ? "border-red-500 focus-visible:ring-red-500" : ""}
+              />
+              {quantityHasError && (
+                <p className="text-xs text-red-500">{quantityError}</p>
+              )}
+            </div>
+
+            {/* Cost preview */}
+            {selectedItem && isQuantityInputValid(quantityInput) && (
+              <div className="p-3 bg-muted/50 rounded-md space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Unité :</span>
+                  <span className="font-medium">{selectedItem.unit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Coût unitaire :</span>
+                  <span className="font-medium">{fmt(selectedItem.costPrice)} Ar</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-semibold border-t pt-1 mt-1">
+                  <span>Coût total :</span>
+                  <span>{fmt(quantity * selectedItem.costPrice)} Ar</span>
+                </div>
               </div>
             )}
+
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowIngredientDialog(false)}>Annuler</Button>
-              <Button onClick={addIngredient} disabled={!selectedItem || quantity <= 0}>
+              <Button variant="outline" onClick={closeIngredientDialog}>Annuler</Button>
+              <Button
+                onClick={addIngredient}
+                disabled={!selectedItem || !isQuantityInputValid(quantityInput)}
+              >
                 Ajouter
               </Button>
             </div>

@@ -636,7 +636,7 @@
     "arrivals": "Arrivées",
     "departures": "Départs",
     "inHouse": "Sur place",
-    "reservations": "Réservations du {date}",
+    "reservations": "Réservations du ",
     "noReservations": "Aucune réservation pour cette date",
     "guest": "Client",
     "room": "Chambre",
@@ -683,7 +683,11 @@
     "hotelInvoice": "HÔTEL",
     "restaurantInvoice": "RESTAURANT",
     "pubInvoice": "PUB / BAR",
-    "dailyInvoiceTitle": "*** FACTURE JOURNALIÈRE ***"
+    "dailyInvoiceTitle": "*** FACTURE JOURNALIÈRE ***",
+    "hotel_reservations": "Réservations Hôtel",
+    "hotel_services": "Services Hôtel",
+    "lounge": "Lounge / Bar",
+    "casino": "Casino"
   },
   "restaurant": {
     "subtitle": "Commandes • Cuisine • Inventaire • Caisse",
