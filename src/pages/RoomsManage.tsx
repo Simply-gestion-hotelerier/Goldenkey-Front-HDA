@@ -134,13 +134,13 @@ export default function RoomsManage() {
   // ── Queries ─────────────────────────────────────────────────────────────
   const { data: rooms = [], isLoading: loadRooms, refetch: refetchRooms } = useQuery<Room[]>({
     queryKey: ["hotel", "rooms"],
-    queryFn: () => api.get<Room[]>("/hotel/rooms"),
+    queryFn: () => api.get<Room[]>("/hotelrooms/rooms"),
     staleTime: 30_000,
   });
 
   const { data: maintenances = [], isLoading: loadMaint, refetch: refetchMaint } = useQuery<RoomMaintenance[]>({
     queryKey: ["hotel", "maintenances"],
-    queryFn: () => api.get<RoomMaintenance[]>("/hotel/maintenances"),
+    queryFn: () => api.get<RoomMaintenance[]>("/hotelrooms/maintenances"),
     staleTime: 30_000,
   });
 
@@ -174,7 +174,7 @@ export default function RoomsManage() {
   // ── Mutations ─────────────────────────────────────────────────────────────
 
   const addRoom = useMutation({
-    mutationFn: () => api.post("/hotel/rooms", { number: newNumber, type: newType, status: newStatus }),
+    mutationFn: () => api.post("/hotelrooms/rooms", { number: newNumber, type: newType, status: newStatus }),
     onSuccess: () => {
       setNewNumber(""); setAddOpen(false);
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
@@ -187,7 +187,7 @@ export default function RoomsManage() {
     mutationFn: async () => {
       await Promise.all(
         Array.from({ length: bulkEnd - bulkStart + 1 }, (_, i) =>
-          api.post("/hotel/rooms", { number: String(bulkStart + i), type: bulkType, status: "available" })
+          api.post("/hotelrooms/rooms", { number: String(bulkStart + i), type: bulkType, status: "available" })
         )
       );
     },
@@ -201,7 +201,7 @@ export default function RoomsManage() {
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: RoomStatus }) =>
-      api.patch(`/hotel/rooms/${id}/status`, { status }),
+      api.patch(`/hotelrooms/rooms/${id}/status`, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
       toast({ title: `${t('common.status')} ${t('rooms.updated')}` });
@@ -210,7 +210,7 @@ export default function RoomsManage() {
   });
 
   const deleteRoom = useMutation({
-    mutationFn: (id: number) => api.del(`/hotel/rooms/${id}`),
+    mutationFn: (id: number) => api.del(`/hotelrooms/rooms/${id}`),
     onSuccess: () => {
       setDeleteTarget(null);
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
@@ -223,7 +223,7 @@ export default function RoomsManage() {
   });
 
   const addMaintenance = useMutation({
-    mutationFn: () => api.post("/hotel/maintenances", {
+    mutationFn: () => api.post("/hotelrooms/maintenances", {
       roomId: Number(maintRoomId),
       startDate: new Date(maintStart).toISOString(),
       endDate: new Date(maintEnd).toISOString(),
@@ -242,7 +242,7 @@ export default function RoomsManage() {
 
   const updateMaintStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: MaintenanceStatus }) =>
-      api.patch(`/hotel/maintenances/${id}/status`, { status }),
+      api.patch(`/hotelrooms/maintenances/${id}/status`, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["hotel", "maintenances"] });
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
@@ -252,7 +252,7 @@ export default function RoomsManage() {
   });
 
   const deleteMaintenance = useMutation({
-    mutationFn: (id: number) => api.del(`/hotel/maintenances/${id}`),
+    mutationFn: (id: number) => api.del(`/hotelrooms/maintenances/${id}`),
     onSuccess: () => {
       setDeleteMTarget(null);
       qc.invalidateQueries({ queryKey: ["hotel", "maintenances"] });
@@ -474,7 +474,7 @@ export default function RoomsManage() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>{t('rooms.addRoom', 'Add room')}</DialogTitle>
+                    <DialogTitle>{t('rooms.addRoom', 'Add room')}dd</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="space-y-1.5">

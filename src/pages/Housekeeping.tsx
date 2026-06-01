@@ -32,7 +32,7 @@ export default function Housekeeping() {
   const qc = useQueryClient();
   const { data: rooms = [] } = useQuery({ 
     queryKey: ["hotel", "rooms"], 
-    queryFn: () => api.get<any[]>("/hotel/rooms") 
+    queryFn: () => api.get<any[]>("/hotelrooms/rooms") 
   });
 
   const [inspectedIds, setInspectedIds] = useState<number[]>(() => {
@@ -44,7 +44,7 @@ export default function Housekeeping() {
   }, [inspectedIds]);
 
   const setStatus = useMutation({
-    mutationFn: (p: { id: number; status: string }) => api.patch(`/hotel/rooms/${p.id}/status`, { status: mapUiToApi(p.status) }),
+    mutationFn: (p: { id: number; status: string }) => api.patch(`/hotelrooms/rooms/${p.id}/status`, { status: mapUiToApi(p.status) }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["hotel", "rooms"] });
       if (vars?.status === 'inspected') {

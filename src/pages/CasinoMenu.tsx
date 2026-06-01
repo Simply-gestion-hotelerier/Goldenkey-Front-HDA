@@ -17,7 +17,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
@@ -128,6 +127,7 @@ export default function CasinoMenu() {
   const [editingDish, setEditingDish] = useState<BarDish | null>(null);
   const [selectedItem, setSelectedItem] = useState<ItemForDish | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
+  const [quantityInput, setQuantityInput] = useState<string>("");
   const [ingredients, setIngredients] = useState<DishIngredient[]>([]);
   const [loading, setLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -150,6 +150,35 @@ export default function CasinoMenu() {
     loadItems();
   }, []);
 
+  // ── Quantity helpers ────────────────────────────────────────────────────────
+
+  const isQuantityInputValid = (value: string): boolean => {
+    if (value === "" || value === ".") return false;
+    return /^\d+\.?\d*$/.test(value) && parseFloat(value) > 0;
+  };
+
+  const getQuantityErrorMessage = (): string | null => {
+    if (quantityInput === "") return null;
+    if (!/^\d*\.?\d*$/.test(quantityInput) || quantityInput === ".") {
+      return "Quantité invalide";
+    }
+    if (/^\d+\.?\d*$/.test(quantityInput) && parseFloat(quantityInput) <= 0) {
+      return "La quantité doit être supérieure à 0";
+    }
+    return null;
+  };
+
+  const resetQuantityFields = () => {
+    setQuantity(0);
+    setQuantityInput("");
+  };
+
+  const closeIngredientDialog = () => {
+    setShowIngredientDialog(false);
+    setSelectedItem(null);
+    resetQuantityFields();
+  };
+
   const loadDishes = async () => {
     try {
       const response = await api.get<any>("/casino/dishes");
@@ -163,17 +192,17 @@ export default function CasinoMenu() {
   const loadItems = async () => {
     try {
       const response = await api.get<any>("/casino/dishes/for-casino");
-      const data = response?.data ?? response ?? [];
-      setItems(Array.isArray(data) ? data : []);
+      const raw = response?.data ?? response ?? [];
+      const data: ItemForDish[] = (Array.isArray(raw) ? raw : []).map(
+        (item: any) => ({
+          ...item,
+          // ── FIX : l'API peut renvoyer costPrice en string ──────────────────
+          costPrice: Number(item.costPrice),
+        })
+      );
+      setItems(data);
     } catch (error) {
-      // fallback to generic items endpoint
-      try {
-        const response = await api.get<any>("/casino/dishes/for-casino");
-        const data = response?.data ?? response ?? [];
-        setItems(Array.isArray(data) ? data : []);
-      } catch {
-        setItems([]);
-      }
+      setItems([]);
     }
   };
 
@@ -217,15 +246,30 @@ export default function CasinoMenu() {
   };
 
   const addIngredient = () => {
-    if (!selectedItem || quantity <= 0) {
-      toast({ title: "Sélectionnez un article et une quantité valide", variant: "destructive" });
+    if (!selectedItem) {
+      toast({ title: "Sélectionnez un article", variant: "destructive" });
       return;
     }
+
+    if (!isQuantityInputValid(quantityInput)) {
+      toast({
+        title: "Quantité invalide",
+        description: getQuantityErrorMessage() || "Veuillez saisir une quantité valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // costPrice est déjà un number grâce à loadItems()
+    const unitCost = Number(selectedItem.costPrice);
     const existing = ingredients.find((i) => i.itemId === selectedItem.id);
     if (existing) {
+      const newQty = existing.quantity + quantity;
       setIngredients((prev) =>
         prev.map((i) =>
-          i.itemId === selectedItem.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.itemId === selectedItem.id
+            ? { ...i, quantity: newQty, cost: unitCost * newQty }
+            : i
         )
       );
     } else {
@@ -236,13 +280,13 @@ export default function CasinoMenu() {
           itemName: selectedItem.name,
           quantity,
           unit: selectedItem.unit,
-          cost: selectedItem.costPrice * quantity,
-          costPrice: selectedItem.costPrice,
+          cost: unitCost * quantity,
+          costPrice: unitCost,
         },
       ]);
     }
     setSelectedItem(null);
-    setQuantity(0);
+    resetQuantityFields();
     setShowIngredientDialog(false);
   };
 
@@ -287,7 +331,10 @@ export default function CasinoMenu() {
 
   const toggleActive = async (dish: BarDish) => {
     try {
-      await api.patch(`/casino/dishes/${dish.id}`, { isActive: !dish.isActive, ingredients: dish.ingredients });
+      await api.patch(`/casino/dishes/${dish.id}`, {
+        isActive: !dish.isActive,
+        ingredients: dish.ingredients,
+      });
       await loadDishes();
       toast({ title: dish.isActive ? "Article désactivé" : "Article activé" });
     } catch (error: any) {
@@ -309,29 +356,79 @@ export default function CasinoMenu() {
         tempsPreparation: d.preparationTime,
         difficulte: DIFFICULTY_LABELS[d.difficulty] || d.difficulty,
         actif: d.isActive ? "Oui" : "Non",
-        ingredients: d.ingredients.map((i) => `${i.itemName} (${i.quantity} ${i.unit})`).join(", "),
+        ingredients: d.ingredients
+          .map((i) => `${i.itemName} (${i.quantity} ${i.unit})`)
+          .join(", "),
       }));
 
       if (format === "excel") {
         const wb = XLSX.utils.book_new();
-        const headers = ["ID", "Nom", "Catégorie", "Prix (Ar)", "Préparation (min)", "Difficulté", "Actif", "Ingrédients"];
-        const rows = exportData.map((d) => [d.id, d.nom, d.categorie, d.prix, d.tempsPreparation, d.difficulte, d.actif, d.ingredients]);
+        const headers = [
+          "ID",
+          "Nom",
+          "Catégorie",
+          "Prix (Ar)",
+          "Préparation (min)",
+          "Difficulté",
+          "Actif",
+          "Ingrédients",
+        ];
+        const rows = exportData.map((d) => [
+          d.id,
+          d.nom,
+          d.categorie,
+          d.prix,
+          d.tempsPreparation,
+          d.difficulte,
+          d.actif,
+          d.ingredients,
+        ]);
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-        ws["!cols"] = [{ wch: 6 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 8 }, { wch: 50 }];
+        ws["!cols"] = [
+          { wch: 6 },
+          { wch: 25 },
+          { wch: 15 },
+          { wch: 12 },
+          { wch: 18 },
+          { wch: 12 },
+          { wch: 8 },
+          { wch: 50 },
+        ];
         XLSX.utils.book_append_sheet(wb, ws, "Carte Casino");
         const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        saveAs(new Blob([wbout], { type: "application/octet-stream" }), `bar-carte-${today}.xlsx`);
+        saveAs(
+          new Blob([wbout], { type: "application/octet-stream" }),
+          `bar-carte-${today}.xlsx`
+        );
       } else if (format === "csv") {
-        let csv = "\uFEFFID,Nom,Catégorie,Prix,Préparation,Difficulté,Actif,Ingrédients\n";
+        let csv =
+          "\uFEFFID,Nom,Catégorie,Prix,Préparation,Difficulté,Actif,Ingrédients\n";
         exportData.forEach((d) => {
           csv += `${d.id},"${d.nom}","${d.categorie}",${d.prix},${d.tempsPreparation},"${d.difficulte}","${d.actif}","${d.ingredients}"\n`;
         });
-        saveAs(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `bar-carte-${today}.csv`);
+        saveAs(
+          new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+          `bar-carte-${today}.csv`
+        );
       } else if (format === "json") {
-        saveAs(new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" }), `bar-carte-${today}.json`);
+        saveAs(
+          new Blob([JSON.stringify(exportData, null, 2)], {
+            type: "application/json",
+          }),
+          `bar-carte-${today}.json`
+        );
       } else if (format === "txt") {
-        const lines = ["=== CARTE DU CASINO ===", "", ...exportData.map((d) => `[${d.categorie}] ${d.nom} — ${fmt(d.prix)} Ar`)];
-        saveAs(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8;" }), `bar-carte-${today}.txt`);
+        const lines = [
+          "=== CARTE DU CASINO ===",
+          "",
+          ...exportData.map(
+            (d) => `[${d.categorie}] ${d.nom} — ${fmt(d.prix)} Ar`
+          ),
+        ];
+        saveAs(
+          new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8;" }),
+          `bar-carte-${today}.txt`
+        );
       }
 
       toast({ title: "Export réussi" });
@@ -344,13 +441,48 @@ export default function CasinoMenu() {
   };
 
   const exportOptions = [
-    { format: "excel", label: "Excel", extension: ".xlsx", icon: FileSpreadsheet, color: "text-green-600", bgColor: "bg-green-50", hoverColor: "hover:bg-green-100" },
-    { format: "csv", label: "CSV", extension: ".csv", icon: Table, color: "text-blue-600", bgColor: "bg-blue-50", hoverColor: "hover:bg-blue-100" },
-    { format: "txt", label: "TXT", extension: ".txt", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-50", hoverColor: "hover:bg-purple-100" },
-    { format: "json", label: "JSON", extension: ".json", icon: FileCode, color: "text-orange-600", bgColor: "bg-orange-50", hoverColor: "hover:bg-orange-100" },
+    {
+      format: "excel",
+      label: "Excel",
+      extension: ".xlsx",
+      icon: FileSpreadsheet,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      hoverColor: "hover:bg-green-100",
+    },
+    {
+      format: "csv",
+      label: "CSV",
+      extension: ".csv",
+      icon: Table,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      hoverColor: "hover:bg-blue-100",
+    },
+    {
+      format: "txt",
+      label: "TXT",
+      extension: ".txt",
+      icon: FileText,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      hoverColor: "hover:bg-purple-100",
+    },
+    {
+      format: "json",
+      label: "JSON",
+      extension: ".json",
+      icon: FileCode,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      hoverColor: "hover:bg-orange-100",
+    },
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
+
+  const quantityError = getQuantityErrorMessage();
+  const quantityHasError = quantityInput !== "" && quantityError !== null;
 
   return (
     <div className="flex h-screen bg-background">
@@ -370,7 +502,11 @@ export default function CasinoMenu() {
             <div className="flex gap-2 items-center">
               {/* Export */}
               <div className="relative">
-                <Button variant="outline" onClick={() => setExportOpen((v) => !v)} disabled={exportLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() => setExportOpen((v) => !v)}
+                  disabled={exportLoading}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   {exportLoading ? "Export…" : "Exporter"}
                   <ChevronDown className="h-4 w-4 ml-2" />
@@ -389,8 +525,12 @@ export default function CasinoMenu() {
                             <div className={`p-1.5 rounded ${opt.bgColor}`}>
                               <Icon className={`h-4 w-4 ${opt.color}`} />
                             </div>
-                            <span className="text-sm font-medium text-gray-700">{opt.label}</span>
-                            <span className="ml-auto text-xs font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{opt.extension}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {opt.label}
+                            </span>
+                            <span className="ml-auto text-xs font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                              {opt.extension}
+                            </span>
                           </button>
                         );
                       })}
@@ -399,7 +539,10 @@ export default function CasinoMenu() {
                 )}
               </div>
               {/* New Item */}
-              <Button onClick={openCreateDialog} className="bg-yellow-600 hover:bg-yellow-700 text-white">
+              <Button
+                onClick={openCreateDialog}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
                 <Plus className="h-4 w-4 mr-2" /> Nouvel article
               </Button>
             </div>
@@ -429,15 +572,30 @@ export default function CasinoMenu() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {categoryDishes.map((dish) => (
-                    <Card key={dish.id} className={`transition-all ${!dish.isActive ? "opacity-60" : ""}`}>
+                    <Card
+                      key={dish.id}
+                      className={`transition-all ${!dish.isActive ? "opacity-60" : ""}`}
+                    >
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base font-semibold leading-tight">{dish.name}</CardTitle>
+                          <CardTitle className="text-base font-semibold leading-tight">
+                            {dish.name}
+                          </CardTitle>
                           <div className="flex gap-1 shrink-0">
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(dish)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEditDialog(dish)}
+                            >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => deleteDish(dish.id)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => deleteDish(dish.id)}
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -445,7 +603,9 @@ export default function CasinoMenu() {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {dish.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{dish.description}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {dish.description}
+                          </p>
                         )}
                         <div className="flex items-center gap-3 text-sm">
                           <span className="flex items-center gap-1 font-semibold text-purple-700">
@@ -463,7 +623,11 @@ export default function CasinoMenu() {
                           </Badge>
                           <Badge
                             variant="outline"
-                            className={`text-xs cursor-pointer ${dish.isActive ? "text-green-700 border-green-300 bg-green-50" : "text-red-600 border-red-300 bg-red-50"}`}
+                            className={`text-xs cursor-pointer ${
+                              dish.isActive
+                                ? "text-green-700 border-green-300 bg-green-50"
+                                : "text-red-600 border-red-300 bg-red-50"
+                            }`}
                             onClick={() => toggleActive(dish)}
                           >
                             {dish.isActive ? "Disponible" : "Indisponible"}
@@ -473,7 +637,9 @@ export default function CasinoMenu() {
                           <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
                             <List className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                             <span className="line-clamp-2">
-                              {dish.ingredients.map((i) => `${i.itemName} (${i.quantity} ${i.unit})`).join(", ")}
+                              {dish.ingredients
+                                .map((i) => `${i.itemName} (${i.quantity} ${i.unit})`)
+                                .join(", ")}
                             </span>
                           </div>
                         )}
@@ -500,9 +666,13 @@ export default function CasinoMenu() {
       <Dialog open={showDishDialog} onOpenChange={setShowDishDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingDish ? "Modifier l'article" : "Nouvel article casino"}</DialogTitle>
+            <DialogTitle>
+              {editingDish ? "Modifier l'article" : "Nouvel article casino"}
+            </DialogTitle>
             <DialogDescription>
-              {editingDish ? `Modifier "${editingDish.name}"` : "Créer un nouvel article pour la carte du casino"}
+              {editingDish
+                ? `Modifier "${editingDish.name}"`
+                : "Créer un nouvel article pour la carte du casino"}
             </DialogDescription>
           </DialogHeader>
 
@@ -531,11 +701,15 @@ export default function CasinoMenu() {
                       <FormLabel>Catégorie</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {BAR_CATEGORIES.map((c) => (
-                            <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                            <SelectItem key={c.key} value={c.key}>
+                              {c.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -552,7 +726,9 @@ export default function CasinoMenu() {
                       <FormLabel>Difficulté</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="easy">Facile</SelectItem>
@@ -573,7 +749,8 @@ export default function CasinoMenu() {
                       <FormLabel>Prix (Ar) *</FormLabel>
                       <FormControl>
                         <Input
-                          type="number" min={0}
+                          type="number"
+                          min={0}
                           {...field}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         />
@@ -591,7 +768,8 @@ export default function CasinoMenu() {
                       <FormLabel>Temps de préparation (min)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number" min={0}
+                          type="number"
+                          min={0}
                           {...field}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         />
@@ -608,7 +786,10 @@ export default function CasinoMenu() {
                     <FormItem className="col-span-2">
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="Description de l'article (optionnel)" {...field} />
+                        <Input
+                          placeholder="Description de l'article (optionnel)"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -620,20 +801,39 @@ export default function CasinoMenu() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Ingrédients / Composants</span>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setShowIngredientDialog(true)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowIngredientDialog(true)}
+                  >
                     <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
                   </Button>
                 </div>
                 {ingredients.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">Aucun ingrédient ajouté</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    Aucun ingrédient ajouté
+                  </p>
                 ) : (
                   <div className="space-y-1 max-h-48 overflow-y-auto">
                     {ingredients.map((ing) => (
-                      <div key={ing.itemId} className="flex items-center justify-between bg-muted/30 rounded px-3 py-1.5 text-sm">
+                      <div
+                        key={ing.itemId}
+                        className="flex items-center justify-between bg-muted/30 rounded px-3 py-1.5 text-sm"
+                      >
                         <span>{ing.itemName}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-muted-foreground">{ing.quantity} {ing.unit}</span>
-                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => removeIngredient(ing.itemId)}>
+                          <span className="text-muted-foreground">
+                            {ing.quantity} {ing.unit}
+                          </span>
+                          <span className="text-xs text-green-600">{fmt(ing.cost)} Ar</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-red-500"
+                            onClick={() => removeIngredient(ing.itemId)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -644,11 +844,23 @@ export default function CasinoMenu() {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowDishDialog(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDishDialog(false)}
+                >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading} className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                  {loading ? "Enregistrement…" : editingDish ? "Mettre à jour" : "Créer"}
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  {loading
+                    ? "Enregistrement…"
+                    : editingDish
+                    ? "Mettre à jour"
+                    : "Créer"}
                 </Button>
               </div>
             </form>
@@ -657,17 +869,23 @@ export default function CasinoMenu() {
       </Dialog>
 
       {/* ── Dialog Add Ingredient ─────────────────────────────────────────── */}
-      <Dialog open={showIngredientDialog} onOpenChange={setShowIngredientDialog}>
+      <Dialog open={showIngredientDialog} onOpenChange={(open) => !open && closeIngredientDialog()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Ajouter un ingrédient</DialogTitle>
-            <DialogDescription>Sélectionner un article du stock casino</DialogDescription>
+            <DialogDescription>
+              Sélectionner un article du stock casino
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">Article (stock bar)</label>
+              <label className="text-sm font-medium mb-1 block">
+                Article (stock casino)
+              </label>
               <Select
-                onValueChange={(v) => setSelectedItem(items.find((i) => i.id === Number(v)) || null)}
+                onValueChange={(v) =>
+                  setSelectedItem(items.find((i) => i.id === Number(v)) || null)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un article…" />
@@ -675,27 +893,70 @@ export default function CasinoMenu() {
                 <SelectContent>
                   {items.map((item) => (
                     <SelectItem key={item.id} value={String(item.id)}>
-                      {item.name} ({item.unit}){item.availableQty !== undefined ? ` — Stock: ${item.availableQty}` : ""}
+                      {item.name} ({item.unit})
+                      {item.availableQty !== undefined
+                        ? ` — Stock: ${item.availableQty}`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {selectedItem && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">Quantité ({selectedItem.unit})</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
+
+            {/* Quantity input — free text with decimal support */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium block">
+                Quantité{selectedItem ? ` (${selectedItem.unit})` : ""}
+              </label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="Ex: 0.5, 1, 2.75…"
+                value={quantityInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                    setQuantityInput(raw);
+                    const parsed = parseFloat(raw);
+                    setQuantity(!isNaN(parsed) ? parsed : 0);
+                  }
+                }}
+                className={quantityHasError ? "border-red-500 focus-visible:ring-red-500" : ""}
+              />
+              {quantityHasError && (
+                <p className="text-xs text-red-500">{quantityError}</p>
+              )}
+            </div>
+
+            {/* Cost preview — only shown when both item and valid quantity are set */}
+            {selectedItem && isQuantityInputValid(quantityInput) && (
+              <div className="p-3 bg-muted/50 rounded-md space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Unité :</span>
+                  <span className="font-medium">{selectedItem.unit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Coût unitaire :</span>
+                  <span className="font-medium">{fmt(selectedItem.costPrice)} Ar</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-semibold border-t pt-1 mt-1">
+                  <span>Coût total :</span>
+                  <span>{fmt(quantity * selectedItem.costPrice)} Ar</span>
+                </div>
               </div>
             )}
+
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowIngredientDialog(false)}>Annuler</Button>
-              <Button onClick={addIngredient} disabled={!selectedItem || quantity <= 0}>
+              <Button
+                variant="outline"
+                onClick={closeIngredientDialog}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={addIngredient}
+                disabled={!selectedItem || !isQuantityInputValid(quantityInput)}
+              >
                 Ajouter
               </Button>
             </div>

@@ -3,14 +3,14 @@ export type Role = 'admin' | 'manager' | 'reception' | 'housekeeping' | 'serveur
 
 export const roleAccess: Record<Role, string[]> = {
   admin: [
-    "/", "/hotel", "/reservations", "/hotel/plan", "/rooms/manage",
+    "/", "/hotel", "/reservations", "/hotelrooms/plan", "/rooms/manage",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/pub", "/pub/menu", "/bar", "/bar/pos", "/agenda",
     "/crm", "/inventory" ,"/invoices/daily", "/invoices/client", "/cash", "/reports", 
     "/housekeeping", "/notifications", "/settings", "/team"
   ],
   reception: [
-  "/reservations", "/hotel/plan", "/crm", "/notifications"
+  "/reservations", "/hotelrooms/plan", "/crm", "/notifications"
   ],
   housekeeping: [
      "/housekeeping", "/notifications"

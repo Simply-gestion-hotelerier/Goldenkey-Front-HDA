@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Utensils, Clock, DollarSign, Edit2, Trash2, ChefHat, List, Download, ChevronDown, Table, FileText, FileCode, File, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Utensils, Clock, DollarSign, Edit2, Trash2, List, Download, ChevronDown, Table, FileText, FileCode, FileSpreadsheet } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,6 +56,7 @@ interface ItemForDish {
   sku: string;
   unit: string;
   costPrice: number;
+  availableQty?: number;
 }
 
 export default function RestaurantMenu() {
@@ -344,6 +345,18 @@ ${t('restaurant.reportFooter')}
     return labels[difficulty] || difficulty;
   };
 
+  const DISH_CATEGORIES = [
+    { key: "appetizer",   label: t('restaurant.categoryAppetizer') },
+    { key: "main_course", label: t('restaurant.categoryMainCourse') },
+    { key: "dessert",     label: t('restaurant.categoryDessert') },
+    { key: "beverage",    label: t('restaurant.categoryBeverage') },
+    { key: "side_dish",   label: t('restaurant.categorySideDish') },
+    { key: "dejeuner",    label: t('restaurant.categoryBreakfast') },
+    { key: "snack",       label: t('restaurant.categorySnack') },
+  ];
+
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+
   // Fonction pour calculer le coût total des ingrédients
   const calculateTotalCost = (ingredients: DishIngredient[]): number => {
     return ingredients.reduce((total, ingredient) => total + ingredient.cost, 0);
@@ -396,7 +409,7 @@ ${t('restaurant.reportFooter')}
         sku: item.sku,
         unit: item.unit,
         costPrice: Number(item.costPrice) || 0,
-        salePriceDefault: Number(item.salePriceDefault) || 0
+        availableQty: item.availableQty !== undefined ? Number(item.availableQty) : undefined,
       }));
 
       setItems(itemsForDish);
@@ -464,16 +477,30 @@ ${t('restaurant.reportFooter')}
       return;
     }
 
-    const newIngredient: DishIngredient = {
-      itemId: selectedItem.id,
-      itemName: selectedItem.name,
-      quantity: quantity,
-      unit: selectedItem.unit,
-      cost: quantity * selectedItem.costPrice,
-      costPrice: selectedItem.costPrice
-    };
+    const unitCost = Number(selectedItem.costPrice) || 0;
+    const existing = ingredients.find((i) => i.itemId === selectedItem.id);
 
-    setIngredients(prev => [...prev, newIngredient]);
+    if (existing) {
+      const newQty = existing.quantity + quantity;
+      setIngredients((prev) =>
+        prev.map((i) =>
+          i.itemId === selectedItem.id
+            ? { ...i, quantity: newQty, cost: unitCost * newQty }
+            : i
+        )
+      );
+    } else {
+      const newIngredient: DishIngredient = {
+        itemId: selectedItem.id,
+        itemName: selectedItem.name,
+        quantity: quantity,
+        unit: selectedItem.unit,
+        cost: quantity * unitCost,
+        costPrice: unitCost,
+      };
+      setIngredients(prev => [...prev, newIngredient]);
+    }
+
     setSelectedItem(null);
     resetQuantityFields();
     setShowIngredientDialog(false);
@@ -485,8 +512,8 @@ ${t('restaurant.reportFooter')}
   };
 
   // Supprimer un ingrédient
-  const removeIngredient = (index: number) => {
-    setIngredients(prev => prev.filter((_, i) => i !== index));
+  const removeIngredient = (itemId: number) => {
+    setIngredients(prev => prev.filter((i) => i.itemId !== itemId));
   };
 
   // Fermer le dialog ingrédient et réinitialiser
@@ -629,6 +656,13 @@ ${t('restaurant.reportFooter')}
   const quantityError = getQuantityErrorMessage();
   const quantityHasError = quantityInput !== "" && quantityError !== null;
 
+  const exportOptions = [
+    { format: "excel", label: "Excel", extension: ".xlsx", icon: FileSpreadsheet, color: "text-green-600", bgColor: "bg-green-50", hoverColor: "hover:bg-green-100" },
+    { format: "csv",   label: "CSV",   extension: ".csv",  icon: Table,           color: "text-blue-600",   bgColor: "bg-blue-50",   hoverColor: "hover:bg-blue-100"  },
+    { format: "txt",   label: "TXT",   extension: ".txt",  icon: FileText,        color: "text-purple-600", bgColor: "bg-purple-50", hoverColor: "hover:bg-purple-100"},
+    { format: "json",  label: "JSON",  extension: ".json", icon: FileCode,        color: "text-orange-600", bgColor: "bg-orange-50", hoverColor: "hover:bg-orange-100"},
+  ];
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -636,463 +670,369 @@ ${t('restaurant.reportFooter')}
         <Header />
         <main className="flex-1 overflow-auto p-6 space-y-6">
 
-          {/* En-tête */}
-          <div className="flex justify-between items-center">
+          {/* ── Header ──────────────────────────────────────────────────────── */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-3xl font-bold">{t('restaurant.dishManagement')}</h1>
-              <p className="text-muted-foreground">{t('restaurant.dishSubtitle')}</p>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Utensils className="h-8 w-8 text-orange-600" /> {t('restaurant.dishManagement')}
+              </h1>
+              <p className="text-muted-foreground">{dishes.length} {t('restaurant.dishes')}</p>
             </div>
+            <div className="flex gap-2 items-center">
 
-            <div className="flex gap-3">
-              {/* Bouton d'exportation */}
+              {/* Export */}
               <div className="relative">
-                <button
-                  onClick={() => setExportMenuOpen(!exportMenuOpen)}
-                  disabled={exportMenuLoading || dishes.length === 0}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-blue-400 disabled:to-blue-500 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-lg font-semibold group"
-                >
-                  {exportMenuLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>{t('export.exporting')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                      <span>{t('restaurant.exportDishes')}</span>
-                      <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform" />
-                    </>
-                  )}
-                </button>
-
+                <Button variant="outline" onClick={() => setExportMenuOpen((v) => !v)} disabled={exportMenuLoading}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {exportMenuLoading ? t('export.exporting') : t('restaurant.exportDishes')}
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
                 {exportMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-10 overflow-hidden backdrop-blur-sm">
-                    <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
-                      <p className="text-sm font-bold text-blue-900">{t('export.formats')}</p>
-                      <p className="text-xs text-blue-600 mt-1">{t('restaurant.chooseFormat')}</p>
-                    </div>
-                    <div className="p-3 space-y-2">
-                      <button onClick={() => exporterPlats('excel')} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 bg-green-50 hover:bg-green-100">
-                        <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                        <div><span className="font-semibold text-gray-900">{t('export.excel')}</span><p className="text-xs text-gray-500">{t('export.excelDescription')}</p></div>
-                      </button>
-                      <button onClick={() => exporterPlats('csv')} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 bg-blue-50 hover:bg-blue-100">
-                        <Table className="w-5 h-5 text-blue-600" />
-                        <div><span className="font-semibold text-gray-900">{t('export.csv')}</span><p className="text-xs text-gray-500">{t('export.csvDescription')}</p></div>
-                      </button>
-                      <button onClick={() => exporterPlats('txt')} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 bg-purple-50 hover:bg-purple-100">
-                        <FileText className="w-5 h-5 text-purple-600" />
-                        <div><span className="font-semibold text-gray-900">{t('export.txt')}</span><p className="text-xs text-gray-500">{t('export.txtDescription')}</p></div>
-                      </button>
-                      <button onClick={() => exporterPlats('json')} className="flex items-center gap-4 w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 bg-orange-50 hover:bg-orange-100">
-                        <FileCode className="w-5 h-5 text-orange-600" />
-                        <div><span className="font-semibold text-gray-900">{t('export.json')}</span><p className="text-xs text-gray-500">{t('export.jsonDescription')}</p></div>
-                      </button>
-                    </div>
-                    <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
-                      <p className="text-xs text-gray-500 text-center">{dishes.length} {t('restaurant.dishes')}</p>
+                  <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="p-1">
+                      {exportOptions.map((opt) => {
+                        const Icon = opt.icon;
+                        return (
+                          <button
+                            key={opt.format}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md ${opt.hoverColor} transition-colors`}
+                            onClick={() => exporterPlats(opt.format)}
+                          >
+                            <div className={`p-1.5 rounded ${opt.bgColor}`}>
+                              <Icon className={`h-4 w-4 ${opt.color}`} />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                            <span className="ml-auto text-xs font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{opt.extension}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
               </div>
 
-              <Button onClick={() => setShowDishDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                {t('restaurant.newDish')}
+              {/* New dish */}
+              <Button onClick={() => setShowDishDialog(true)} className="bg-orange-600 hover:bg-orange-700 text-white">
+                <Plus className="h-4 w-4 mr-2" /> {t('restaurant.newDish')}
               </Button>
             </div>
           </div>
 
-          {/* Statistiques */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <Card className="lg:col-span-4">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{dishes.length}</div>
-                    <div className="text-sm text-muted-foreground">{t('restaurant.dishesCreated')}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {dishes.reduce((total, dish) => total + (dish.ingredients?.length || 0), 0)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{t('restaurant.totalIngredients')}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {dishes.filter(dish => dish.ingredients?.length > 0).length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{t('restaurant.dishesWithIngredients')}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {dishes.filter(dish => !dish.ingredients || dish.ingredients.length === 0).length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{t('restaurant.dishesWithoutIngredients')}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* ── Search ──────────────────────────────────────────────────────── */}
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t('restaurant.searchDish')}
+              className="pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
-          {/* Dialog pour créer/modifier un plat */}
-          <Dialog open={showDishDialog} onOpenChange={(open) => !open && resetForm()}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingDish ? t('restaurant.editDish') : t('restaurant.addDish')}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingDish ? t('restaurant.editDishDesc') : t('restaurant.addDishDesc')}
-                </DialogDescription>
-              </DialogHeader>
-
-              <Form {...dishForm}>
-                <form onSubmit={dishForm.handleSubmit(onSubmitDish)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-
-                    {/* Nom — pleine largeur */}
-                    <FormField control={dishForm.control} name="name" render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>{t('restaurant.dishName')} *</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t('restaurant.dishNamePlaceholder')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    {/* Catégorie + Difficulté — côte à côte */}
-                    <FormField control={dishForm.control} name="category" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.category')}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder={t('restaurant.selectCategory')} /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="appetizer">{t('restaurant.categoryAppetizer')}</SelectItem>
-                            <SelectItem value="main_course">{t('restaurant.categoryMainCourse')}</SelectItem>
-                            <SelectItem value="dessert">{t('restaurant.categoryDessert')}</SelectItem>
-                            <SelectItem value="beverage">{t('restaurant.categoryBeverage')}</SelectItem>
-                            <SelectItem value="side_dish">{t('restaurant.categorySideDish')}</SelectItem>
-                            <SelectItem value="dejeuner">{t('restaurant.categoryBreakfast')}</SelectItem>
-                            <SelectItem value="snack">{t('restaurant.categorySnack')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <FormField control={dishForm.control} name="difficulty" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.difficulty')}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="easy">{t('restaurant.difficultyEasy')}</SelectItem>
-                            <SelectItem value="medium">{t('restaurant.difficultyMedium')}</SelectItem>
-                            <SelectItem value="hard">{t('restaurant.difficultyHard')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    {/* Prix + Temps de préparation — côte à côte */}
-                    <FormField control={dishForm.control} name="price" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.price')} (Ar) *</FormLabel>
-                        <FormControl>
-                          <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <FormField control={dishForm.control} name="preparationTime" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('restaurant.preparationTime')} (min)</FormLabel>
-                        <FormControl>
-                          <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    {/* Description — pleine largeur */}
-                    <FormField control={dishForm.control} name="description" render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>{t('common.description')}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t('restaurant.descriptionPlaceholder')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-
-                  {/* Section Ingrédients — style BarMenu */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">
-                        {t('restaurant.ingredients')} / {t('restaurant.components', 'Composants')}
-                      </span>
-                      <Button type="button" variant="outline" size="sm" onClick={() => setShowIngredientDialog(true)}>
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        {t('restaurant.addIngredient')}
-                      </Button>
-                    </div>
-
-                    {ingredients.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">{t('restaurant.noIngredients')}</p>
-                    ) : (
-                      <div className="space-y-1 max-h-48 overflow-y-auto">
-                        {ingredients.map((ingredient, index) => (
-                          <div key={index} className="flex items-center justify-between bg-muted/30 rounded px-3 py-1.5 text-sm">
-                            <span>{ingredient.itemName}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-muted-foreground">{ingredient.quantity} {ingredient.unit}</span>
-                              <span className="text-xs text-green-600">{ingredient.cost.toLocaleString()} Ar</span>
-                              <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => removeIngredient(index)}>
+          {/* ── Dish Cards by category ───────────────────────────────────────── */}
+          {DISH_CATEGORIES.map(({ key, label }) => {
+            const categoryDishes = filteredDishes.filter((d) => d.category === key);
+            if (categoryDishes.length === 0) return null;
+            return (
+              <div key={key}>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <span className="h-1 w-6 bg-orange-500 rounded-full inline-block" />
+                  {label}
+                  <Badge variant="secondary">{categoryDishes.length}</Badge>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categoryDishes.map((dish) => {
+                    const { totalCost, profitMargin } = calculateDishStats(dish);
+                    return (
+                      <Card key={dish.id} className={`transition-all ${!dish.isActive ? "opacity-60" : ""}`}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <CardTitle className="text-base font-semibold leading-tight">{dish.name}</CardTitle>
+                            <div className="flex gap-1 shrink-0">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => prepareEditDish(dish)}>
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteDish(dish)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           </div>
-                        ))}
-                        <div className="flex justify-between items-center text-sm px-3 pt-2 border-t mt-1">
-                          <span className="font-medium">{t('restaurant.totalIngredientsCost')} :</span>
-                          <span className="text-green-600 font-semibold">{calculateTotalCost(ingredients).toLocaleString()} Ar</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="outline" onClick={resetForm}>
-                      {t('common.cancel')}
-                    </Button>
-                    <Button type="submit">
-                      {editingDish ? t('common.edit') : t('restaurant.createDish')}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Dialog pour ajouter un ingrédient */}
-          <Dialog open={showIngredientDialog} onOpenChange={(open) => !open && closeIngredientDialog()}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>{t('restaurant.addIngredient')}</DialogTitle>
-                <DialogDescription>{t('restaurant.selectItemAndQuantityDesc')}</DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('inventory.item')}</label>
-                  <Select onValueChange={(value) => {
-                    const selected = items.find(item => item.id === Number(value));
-                    setSelectedItem(selected || null);
-                  }}>
-                    <SelectTrigger><SelectValue placeholder={t('inventory.selectItem')} /></SelectTrigger>
-                    <SelectContent>
-                      {items.length === 0 ? (
-                        <SelectItem value="loading" disabled>{t('common.loading')}</SelectItem>
-                      ) : (
-                        items.map((item) => (
-                          <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name} ({item.sku}) - {item.costPrice} Ar/{item.unit}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <div className="text-xs text-muted-foreground">
-                    {items.length} {t('inventory.itemsAvailable')}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('inventory.quantity')}</label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder={t('restaurant.quantityNeeded')}
-                    value={quantityInput}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      // Autoriser uniquement : chiffres, un seul point décimal, pas de lettre ni caractère spécial
-                      if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
-                        setQuantityInput(raw);
-                        const parsed = parseFloat(raw);
-                        setQuantity(!isNaN(parsed) ? parsed : 0);
-                      }
-                      // Si le caractère tapé n'est pas autorisé, on ignore silencieusement
-                    }}
-                    className={quantityHasError ? "border-red-500 focus-visible:ring-red-500" : ""}
-                  />
-                  {quantityHasError && (
-                    <p className="text-xs text-red-500">{quantityError}</p>
-                  )}
-                </div>
-
-                {selectedItem && isQuantityInputValid(quantityInput) && (
-                  <div className="p-3 bg-muted/50 rounded-md space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span>{t('inventory.unit')}:</span>
-                      <span className="font-medium">{selectedItem.unit}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{t('inventory.unitCost')}:</span>
-                      <span className="font-medium">{selectedItem.costPrice.toLocaleString()} Ar</span>
-                    </div>
-                    <div className="flex justify-between text-green-600 font-semibold">
-                      <span>{t('restaurant.totalCost')}:</span>
-                      <span>{(quantity * selectedItem.costPrice).toLocaleString()} Ar</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={closeIngredientDialog}>
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={addIngredient}
-                    disabled={!selectedItem || !isQuantityInputValid(quantityInput)}
-                  >
-                    {t('restaurant.addIngredient')}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Liste des plats */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Utensils className="h-5 w-5" />
-                  {t('restaurant.dishList')}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t('restaurant.searchDish')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-48"
-                  />
-                </div>
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-4">
-                {filteredDishes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ChefHat className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <div className="text-sm">{t('restaurant.noDishes')}</div>
-                    <div className="text-xs">{t('restaurant.startAddingDishes')}</div>
-                  </div>
-                ) : (
-                  filteredDishes.map((dish) => {
-                    const { totalCost, profitMargin } = calculateDishStats(dish);
-                    const dishIngredients = dish.ingredients || [];
-
-                    return (
-                      <div key={dish.id} className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg">{dish.name}</h3>
-                              <Badge variant="outline">{getCategoryLabel(dish.category)}</Badge>
-                              <Badge variant={dish.difficulty === "easy" ? "default" : dish.difficulty === "medium" ? "secondary" : "destructive"}>
-                                {getDifficultyLabel(dish.difficulty)}
-                              </Badge>
-                            </div>
-
-                            {dish.description && (
-                              <p className="text-sm text-muted-foreground mb-3">{dish.description}</p>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {dish.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{dish.description}</p>
+                          )}
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="flex items-center gap-1 font-semibold text-orange-700">
+                              <DollarSign className="h-3.5 w-3.5" />
+                              {fmt(dish.price)} Ar
+                            </span>
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Clock className="h-3.5 w-3.5" />
+                              {dish.preparationTime} min
+                            </span>
+                            {totalCost > 0 && (
+                              <span className={`text-xs font-medium ${profitMargin >= 30 ? "text-green-600" : profitMargin >= 15 ? "text-orange-600" : "text-red-600"}`}>
+                                {profitMargin.toFixed(0)}%
+                              </span>
                             )}
-
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {dish.preparationTime} min
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <DollarSign className="h-4 w-4" />
-                                {dish.price.toLocaleString()} Ar
-                              </div>
-                              {totalCost > 0 && (
-                                <>
-                                  <div>{t('restaurant.cost')}: {totalCost.toLocaleString()} Ar</div>
-                                  <div className={profitMargin >= 30 ? "text-green-600" : profitMargin >= 15 ? "text-orange-600" : "text-red-600"}>
-                                    {t('restaurant.margin')}: {profitMargin.toFixed(1)}%
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-sm font-medium flex items-center gap-2">
-                                  <List className="h-4 w-4" />
-                                  {t('restaurant.ingredients')} ({dishIngredients.length})
-                                </h4>
-                              </div>
-
-                              {dishIngredients.length > 0 ? (
-                                <div className="space-y-1">
-                                  {dishIngredients.map((ingredient: DishIngredient, index: number) => (
-                                    <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                                      <div className="flex items-center gap-3">
-                                        <span className="font-medium text-sm">{ingredient.itemName}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {ingredient.quantity} {ingredient.unit}
-                                        </span>
-                                        <span className="text-xs text-green-600">
-                                          {ingredient.cost.toLocaleString()} Ar
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-center py-2 text-muted-foreground border rounded-md">
-                                  <div className="text-xs">{t('restaurant.noIngredientsForDish')}</div>
-                                </div>
-                              )}
-                            </div>
                           </div>
-
-                          <div className="flex flex-col gap-2 ml-4">
-                            <Button size="sm" variant="outline" onClick={() => prepareEditDish(dish)}>
-                              <Edit2 className="w-4 h-4 mr-1" />
-                              {t('common.edit')}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDeleteDish(dish)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              {t('common.delete')}
-                            </Button>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              {getDifficultyLabel(dish.difficulty)}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs cursor-pointer ${dish.isActive ? "text-green-700 border-green-300 bg-green-50" : "text-red-600 border-red-300 bg-red-50"}`}
+                            >
+                              {dish.isActive ? t('common.active') : t('common.inactive')}
+                            </Badge>
                           </div>
-                        </div>
-                      </div>
+                          {dish.ingredients.length > 0 && (
+                            <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <List className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span className="line-clamp-2">
+                                {dish.ingredients.map((i) => `${i.itemName} (${i.quantity} ${i.unit})`).join(", ")}
+                              </span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     );
-                  })
-                )}
+                  })}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            );
+          })}
+
+          {filteredDishes.length === 0 && (
+            <div className="text-center py-16 text-muted-foreground">
+              <Utensils className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-medium">{t('restaurant.noDishes')}</p>
+              <p className="text-sm">{t('restaurant.startAddingDishes')}</p>
+            </div>
+          )}
+
         </main>
       </div>
+
+      {/* ── Dialog Create/Edit Dish ──────────────────────────────────────────── */}
+      <Dialog open={showDishDialog} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingDish ? t('restaurant.editDish') : t('restaurant.addDish')}</DialogTitle>
+            <DialogDescription>
+              {editingDish ? `${t('restaurant.editDishDesc')} "${editingDish.name}"` : t('restaurant.addDishDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...dishForm}>
+            <form onSubmit={dishForm.handleSubmit(onSubmitDish)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+
+                <FormField control={dishForm.control} name="name" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>{t('restaurant.dishName')} *</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('restaurant.dishNamePlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={dishForm.control} name="category" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('restaurant.category')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue placeholder={t('restaurant.selectCategory')} /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DISH_CATEGORIES.map((c) => (
+                          <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={dishForm.control} name="difficulty" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('restaurant.difficulty')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="easy">{t('restaurant.difficultyEasy')}</SelectItem>
+                        <SelectItem value="medium">{t('restaurant.difficultyMedium')}</SelectItem>
+                        <SelectItem value="hard">{t('restaurant.difficultyHard')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={dishForm.control} name="price" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('restaurant.price')} (Ar) *</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={dishForm.control} name="preparationTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('restaurant.preparationTime')} (min)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={dishForm.control} name="description" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>{t('common.description')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('restaurant.descriptionPlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Ingredients */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">{t('restaurant.ingredients')} / {t('restaurant.components', 'Composants')}</span>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setShowIngredientDialog(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> {t('restaurant.addIngredient')}
+                  </Button>
+                </div>
+                {ingredients.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">{t('restaurant.noIngredients')}</p>
+                ) : (
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {ingredients.map((ingredient) => (
+                      <div key={ingredient.itemId} className="flex items-center justify-between bg-muted/30 rounded px-3 py-1.5 text-sm">
+                        <span>{ingredient.itemName}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-muted-foreground">{ingredient.quantity} {ingredient.unit}</span>
+                          <span className="text-xs text-green-600">{fmt(ingredient.cost)} Ar</span>
+                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => removeIngredient(ingredient.itemId)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center text-sm px-3 pt-2 border-t mt-1">
+                      <span className="font-medium">{t('restaurant.totalIngredientsCost')} :</span>
+                      <span className="text-green-600 font-semibold">{fmt(calculateTotalCost(ingredients))} Ar</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  {t('common.cancel')}
+                </Button>
+                <Button type="submit" disabled={loading} className="bg-orange-600 hover:bg-orange-700 text-white">
+                  {loading ? t('common.saving', 'Enregistrement…') : editingDish ? t('common.edit') : t('restaurant.createDish')}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog Add Ingredient ────────────────────────────────────────────── */}
+      <Dialog open={showIngredientDialog} onOpenChange={(open) => !open && closeIngredientDialog()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('restaurant.addIngredient')}</DialogTitle>
+            <DialogDescription>{t('restaurant.selectItemAndQuantityDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+
+            {/* Article selector */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t('inventory.item')}</label>
+              <Select onValueChange={(value) => {
+                const selected = items.find(item => item.id === Number(value));
+                setSelectedItem(selected || null);
+              }}>
+                <SelectTrigger><SelectValue placeholder={t('inventory.selectItem')} /></SelectTrigger>
+                <SelectContent>
+                  {items.length === 0 ? (
+                    <SelectItem value="loading" disabled>{t('common.loading')}</SelectItem>
+                  ) : (
+                    items.map((item) => (
+                      <SelectItem key={item.id} value={String(item.id)}>
+                        {item.name} ({item.unit}){item.availableQty !== undefined ? ` — Stock: ${item.availableQty}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quantity input */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium block">
+                {t('inventory.quantity')}{selectedItem ? ` (${selectedItem.unit})` : ""}
+              </label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder={t('restaurant.quantityNeeded')}
+                value={quantityInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                    setQuantityInput(raw);
+                    const parsed = parseFloat(raw);
+                    setQuantity(!isNaN(parsed) ? parsed : 0);
+                  }
+                }}
+                className={quantityHasError ? "border-red-500 focus-visible:ring-red-500" : ""}
+              />
+              {quantityHasError && (
+                <p className="text-xs text-red-500">{quantityError}</p>
+              )}
+            </div>
+
+            {/* Cost preview */}
+            {selectedItem && isQuantityInputValid(quantityInput) && (
+              <div className="p-3 bg-muted/50 rounded-md space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('inventory.unit')} :</span>
+                  <span className="font-medium">{selectedItem.unit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('inventory.unitCost')} :</span>
+                  <span className="font-medium">{fmt(selectedItem.costPrice)} Ar</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-semibold border-t pt-1 mt-1">
+                  <span>{t('restaurant.totalCost')} :</span>
+                  <span>{fmt(quantity * selectedItem.costPrice)} Ar</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeIngredientDialog}>{t('common.cancel')}</Button>
+              <Button onClick={addIngredient} disabled={!selectedItem || !isQuantityInputValid(quantityInput)}>
+                {t('restaurant.addIngredient')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -131,19 +131,19 @@ export default function DailyInvoice() {
   const { data: saleData = { lines: [], total: 0, ordersDetail: [] } } = useQuery<SaleData>({
     queryKey: ["report", "daily", dept, date],
     queryFn: () => api.get<SaleData>(`/reports/daily?dept=${dept}&date=${date}`),
-    enabled: dept !== "hotel",
+    enabled: dept !== "hotel_reservations",
   });
 
   const { data: hotelData = { reservations: [], total: 0, occupancyRate: 0, arrivals: 0, departures: 0, inHouse: 0 } } = useQuery<HotelData>({
     queryKey: ["report", "daily", "hotel", date],
-    queryFn: () => api.get<HotelData>(`/reports/daily?dept=hotel&date=${date}`),
-    enabled: dept === "hotel",
+    queryFn: () => api.get<HotelData>(`/reports/daily?dept=hotel_reservations&date=${date}`),
+    enabled: dept === "hotel_reservations",
   });
 
-  const lines = dept !== "hotel" ? (saleData.lines ?? []) : [];
+  const lines = dept !== "hotel_reservations" ? (saleData.lines ?? []) : [];
   const ordersDetail = saleData.ordersDetail ?? [] as OrderDetail[];
   const hotelReservations = hotelData.reservations ?? [];
-  const total = dept !== "hotel" ? (saleData.total ?? 0) : (hotelData.total ?? 0);
+  const total = dept !== "hotel_reservations" ? (saleData.total ?? 0) : (hotelData.total ?? 0);
 
   const convert = (amountMGA: number) => {
     if (currency === "MGA") return amountMGA;
@@ -160,10 +160,11 @@ export default function DailyInvoice() {
 
   const getDeptLabel = () => {
     const labels: Record<string, string> = {
-      hotel: t('dailyInvoice.hotel'),
+      hotel_reservations: t('dailyInvoice.hotel_reservations'),
+      hotel_services: t('dailyInvoice.hotel_services'),
       restaurant: t('dailyInvoice.restaurant'),
-      pub: t('dailyInvoice.pub'),
-      spa: t('dailyInvoice.spa')
+      lounge: t('dailyInvoice.lounge'),
+      casino: t('dailyInvoice.casino'),
     };
     return labels[dept] || dept;
   };
@@ -215,9 +216,8 @@ export default function DailyInvoice() {
 
     let bodyHtml = "";
 
-    if (dept === "hotel") {
+    if (dept === "hotel_reservations") {
       const kpis = `
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
           <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px"><div style="font-size:10px;color:#6b7280">${t('dailyInvoice.occupancyRate')}</div><div style="font-size:20px;font-weight:700">${hotelData.occupancyRate ?? "-"}%</div></div>
           <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px"><div style="font-size:10px;color:#6b7280">${t('dailyInvoice.arrivals')}</div><div style="font-size:20px;font-weight:700">${hotelData.arrivals ?? 0}</div></div>
           <div style="border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px"><div style="font-size:10px;color:#6b7280">${t('dailyInvoice.departures')}</div><div style="font-size:20px;font-weight:700">${hotelData.departures ?? 0}</div></div>
@@ -238,7 +238,7 @@ export default function DailyInvoice() {
         <tbody>${rows || `<tr><td colspan="9" style="color:#6b7280;text-align:center;padding:12px">${t('dailyInvoice.noReservations')}</td></tr>`}</tbody>
         <tfoot><tr><td colspan="6" class="r">${t('dailyInvoice.totalRevenue')}</td><td class="r">${fmt(convert(total))} ${currency}</td><td colspan="2"></td></tr></tfoot>
         </table>`;
-    } else if (dept === "restaurant" || dept === "pub") {
+    } else if (dept === "hotel_services" || dept === "restaurant" || dept === "lounge" || dept === "casino") {
       let rows = "";
       if (ordersDetail.length === 0) {
         rows = `<tr><td colspan="9" style="color:#6b7280;text-align:center;padding:14px">${t('dailyInvoice.noOrders')}</td></tr>`;
@@ -330,7 +330,7 @@ export default function DailyInvoice() {
       dblSep,
     ];
 
-    if (dept === "hotel") {
+    if (dept === "hotel_reservations") {
       lines80.push(
         centerLine(`${t('dailyInvoice.occupancyRate')}: ${hotelData.occupancyRate ?? "-"}%  ${t('dailyInvoice.arrivals')}: ${hotelData.arrivals ?? 0}  ${t('dailyInvoice.departures')}: ${hotelData.departures ?? 0}`, W),
         sep
@@ -345,7 +345,7 @@ export default function DailyInvoice() {
           if (r.folioBalance > 0) lines80.push(padLine(`  ${t('dailyInvoice.folioBalance')}:`, `${fmt(convert(r.folioBalance))} ${currency}`, W));
         });
       }
-    } else if (dept === "restaurant" || dept === "pub") {
+    } else if (dept === "hotel_services" || dept === "restaurant" || dept === "lounge" || dept === "casino") {
       if (ordersDetail.length === 0) {
         lines80.push(centerLine(`-- ${t('dailyInvoice.noOrders')} --`, W));
       } else {
@@ -419,10 +419,11 @@ export default function DailyInvoice() {
                 <Select value={dept} onValueChange={(v) => setDept(v as Department)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hotel">{t('dailyInvoice.hotel')}</SelectItem>
+                    <SelectItem value="hotel_reservations">{t('dailyInvoice.hotel_reservations')}</SelectItem>
+                    <SelectItem value="hotel_services">{t('dailyInvoice.hotel_services')}</SelectItem>
                     <SelectItem value="restaurant">{t('dailyInvoice.restaurant')}</SelectItem>
-                    <SelectItem value="pub">{t('dailyInvoice.pub')}</SelectItem>
-                    <SelectItem value="spa">{t('dailyInvoice.spa')}</SelectItem>
+                    <SelectItem value="lounge">{t('dailyInvoice.lounge')}</SelectItem>
+                    <SelectItem value="casino">{t('dailyInvoice.casino')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -455,7 +456,7 @@ export default function DailyInvoice() {
             </CardContent>
           </Card>
 
-          {dept === "hotel" && (
+          {dept === "hotel_reservations" && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
@@ -468,7 +469,7 @@ export default function DailyInvoice() {
                 ))}
               </div>
               <Card>
-                <CardHeader><CardTitle>{t('dailyInvoice.reservations', { date })}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('dailyInvoice.reservations')} {date}</CardTitle></CardHeader>
                 <CardContent><div className="overflow-auto"><table className="w-full text-sm"><thead><tr className="border-b bg-muted/40"><th className="p-2 text-left">{t('dailyInvoice.guest')}</th><th className="p-2 text-left">{t('dailyInvoice.room')}</th><th className="p-2 text-left">{t('dailyInvoice.checkIn')}</th><th className="p-2 text-left">{t('dailyInvoice.checkOut')}</th><th className="p-2 text-right">{t('dailyInvoice.nights')}</th><th className="p-2 text-right">{t('dailyInvoice.ratePerNight')}</th><th className="p-2 text-right">{t('dailyInvoice.total')}</th><th className="p-2 text-right">{t('dailyInvoice.folioBalance')}</th><th className="p-2 text-left">{t('common.status')}</th></tr></thead>
                 <tbody>{hotelReservations.length === 0 ? <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">{t('dailyInvoice.noReservations')}</td></tr> : hotelReservations.map((r, idx) => (<tr key={idx} className="border-b hover:bg-muted/20"><td className="p-2 font-medium">{r.guestName}</td><td className="p-2">{r.roomNumber} <span className="text-muted-foreground text-xs">({r.roomType})</span></td><td className="p-2">{r.checkIn}</td><td className="p-2">{r.checkOut}</td><td className="p-2 text-right">{r.nights}</td><td className="p-2 text-right">{fmt(convert(r.rate))} {currency}</td><td className="p-2 text-right font-semibold">{fmt(convert(r.total))} {currency}</td><td className={`p-2 text-right font-semibold ${r.folioBalance > 0 ? "text-destructive" : "text-green-600"}`}>{fmt(convert(r.folioBalance))} {currency}</td><td className="p-2"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === "checked_in" ? "bg-green-100 text-green-800" : r.status === "checked_out" ? "bg-blue-100 text-blue-800" : r.status === "booked" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>{getStatusLabel(r.status)}</span></td></tr>))}</tbody>
                 <tfoot><tr className="bg-muted/40"><td colSpan={6} className="p-2 text-right font-semibold">{t('dailyInvoice.totalRevenue')}</td><td className="p-2 text-right font-bold text-lg">{fmt(convert(total))} {currency}</td><td colSpan={2} /></tr></tfoot></table></div></CardContent>
@@ -476,7 +477,7 @@ export default function DailyInvoice() {
             </>
           )}
 
-          {(dept === "restaurant" || dept === "pub") && (
+          {(dept === "hotel_services" || dept === "restaurant" || dept === "lounge" || dept === "casino") && (
             <Card><CardHeader><CardTitle>{getDeptLabel()} — {date}</CardTitle></CardHeader>
             <CardContent className="p-0"><div className="overflow-auto">{ordersDetail.length === 0 ? <p className="p-6 text-center text-muted-foreground">{t('dailyInvoice.noOrders')}</p> : <table className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left p-2 pl-4">{t('dailyInvoice.order')} / {t('dailyInvoice.designation')}</th><th className="text-center p-2">{t('dailyInvoice.qty')}</th><th className="text-right p-2">{t('dailyInvoice.unitPrice')}</th><th className="text-right p-2">{t('dailyInvoice.totalPrice')}</th><th className="text-left p-2">{t('dailyInvoice.paymentDate')}</th><th className="text-left p-2">{t('dailyInvoice.paymentMethod')}</th><th className="text-right p-2">{t('dailyInvoice.amountReceived')}</th><th className="text-right p-2">{t('dailyInvoice.changeGiven')}</th><th className="text-left p-2 pr-4">{t('dailyInvoice.operator')}</th></tr></thead>
             <tbody>{ordersDetail.map((order, oi) => (<React.Fragment key={oi}><tr className="bg-muted/30 border-t-2 border-border"><td colSpan={9} className="p-2 pl-4"><div className="flex items-center gap-3 flex-wrap"><span className="font-semibold">{t('dailyInvoice.order')} #{order.id}{order.tableId ? ` — ${t('dailyInvoice.table')} ${order.tableId}` : ""}</span><span className="text-muted-foreground text-xs">{t('dailyInvoice.openedAt')}: {fmtTime(order.openedAt)}{order.closedAt ? ` · ${t('dailyInvoice.closedAt')}: ${fmtTime(order.closedAt)}` : ""}</span><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${order.status === "closed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>{order.status === "closed" ? t('dailyInvoice.statusClosed') : t('dailyInvoice.statusOpen')}</span>{order.remaining > 0 && <span className="text-xs text-destructive font-semibold">⚠ {t('dailyInvoice.remainingDue')}: {fmt(convert(order.remaining))} {currency}</span>}</div></td></tr>
@@ -488,13 +489,8 @@ export default function DailyInvoice() {
             <tfoot><tr className="border-t-2 border-foreground bg-muted/40"><td colSpan={3} className="p-3 pl-4 text-right font-semibold">{t('dailyInvoice.dailyTotal')}</td><td className="p-3 text-right font-bold text-base">{fmt(convert(total))} {currency}</td><td colSpan={2} /><td className="p-3 text-right font-bold text-base">{fmt(convert(ordersDetail.flatMap(o => o.payments).filter(p => p.receivedAmount > p.amount).reduce((s, p) => s + p.receivedAmount, 0)))} {currency}</td><td className="p-3 text-right font-bold text-base text-green-700">{fmt(convert(ordersDetail.flatMap(o => o.payments).reduce((s, p) => s + p.change, 0)))} {currency}</td><td /></tr></tfoot></table>}</div></CardContent></Card>
           )}
 
-          {dept === "spa" && (
-            <Card><CardHeader><CardTitle>{t('dailyInvoice.sales')} — {getDeptLabel()}</CardTitle></CardHeader>
-            <CardContent><div className="overflow-auto"><table className="w-full text-sm"><thead><tr className="border-b bg-muted/40"><th className="text-left p-2">{t('dailyInvoice.designation')}</th><th className="text-left p-2">{t('dailyInvoice.qty')}</th><th className="text-right p-2">{t('dailyInvoice.unitPrice')}</th><th className="text-right p-2">{t('dailyInvoice.totalPrice')}</th></tr></thead>
-            <tbody>{lines.length === 0 ? <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">{t('common.noData')}</td></tr> : lines.map((l, idx) => (<tr key={idx} className="border-b hover:bg-muted/20"><td className="p-2">{l.label}</td><td className="p-2">{l.qty}</td><td className="p-2 text-right">{fmt(convert(l.unit))} {currency}</td><td className="p-2 text-right">{fmt(convert(l.total))} {currency}</td></tr>))}</tbody>
-            <tfoot><tr className="bg-muted/40"><td colSpan={3} className="p-2 text-right font-semibold">{t('dailyInvoice.dailyTotal')}</td><td className="p-2 text-right font-bold text-lg">{fmt(convert(total))} {currency}</td></tr></tfoot></table></div></CardContent></Card>
-          )}
         </main>
+
       </div>
     </div>
   );

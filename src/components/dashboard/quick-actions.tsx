@@ -47,7 +47,7 @@ import { useNavigate } from "react-router-dom";
 export function QuickActions() {
   const navigate = useNavigate();
   const handleAction = (action: string) => {
-    if (action === 'hotel-checkin') navigate('/hotel/plan');
+    if (action === 'hotel-checkin') navigate('/hotelrooms/plan');
     else if (action === 'new-order') navigate('/restaurant/pos');
     else if (action === 'inventory') navigate('/inventory');
     else if (action === 'spa-booking') navigate('/spa/agenda');
