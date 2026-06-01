@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  BarChart3, Settings, Bell, LogOut, ChevronDown,
+  BarChart3, Settings, Bell, LogOut, ChevronDown, Menu, X,
   // Hébergement
   BedDouble, Map, LayoutGrid, CalendarDays, Users, SprayCan,
   // Hôtel F&B
@@ -20,10 +20,11 @@ import {
   Package,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, CSSProperties } from "react";
+import { useState, CSSProperties, useEffect } from "react";
 import { useAuth, Role } from "@/lib/rbac";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ function fadeStyle(rgb: string, index: number, total: number, isActive: boolean)
   };
 }
 
-// ─── Navigation groupée ──────────────────────────────────────────────────────
+// ─── Navigation groupée avec les routes corrigées ──────────────────────────────────────────────────────
 
 export const getNavGroups = (t: (key: string) => string) => [
   {
@@ -80,36 +81,37 @@ export const getNavGroups = (t: (key: string) => string) => [
     label: t("nav.group.hotel_fb"),
     colorKey: "hotel_fb",
     items: [
-      { name: t("nav.hotel"), href: "/hotel",     icon: ConciergeBell },
-      { name: "POS",          href: "/hotel/pos", icon: ShoppingCart  },
-      { name: t("nav.menu"), href: "/hotel/menu", icon: BookOpen      },
+      { name: t("nav.hotel"),      href: "/hotel",      icon: ConciergeBell },
+      { name: "Hotel POS",         href: "/hotel/pos",  icon: ShoppingCart  },
+      { name: t("nav.menu"),       href: "/hotel/menu", icon: BookOpen      },
     ],
   },
   {
     label: t("nav.group.restaurant"),
     colorKey: "restaurant",
     items: [
-      { name: t("nav.restaurant"), href: "/restaurant",      icon: UtensilsCrossed },
-      { name: "POS",               href: "/restaurant/pos",  icon: ClipboardList   },
-      { name: t("nav.menu"),       href: "/restaurant/menu", icon: Scroll          },
+      { name: t("nav.restaurant"),        href: "/restaurant",      icon: UtensilsCrossed },
+      { name: "Restaurant POS",           href: "/restaurant/pos",  icon: ClipboardList   },
+      { name: t("nav.menu"),              href: "/restaurant/menu", icon: Scroll          },
+      { name: "KDS (Cuisine)",            href: "/restaurant/kds",  icon: ChefHat         },
     ],
   },
   {
     label: t("nav.group.bar"),
     colorKey: "bar",
     items: [
-      { name: t("nav.bar"),  href: "/bar",      icon: GlassWater },
-      { name: "POS",         href: "/bar/pos",  icon: CreditCard },
-      { name: t("nav.menu"), href: "/bar/menu", icon: Wine       },
+      { name: t("nav.bar"),        href: "/bar",      icon: GlassWater },
+      { name: "Bar POS",           href: "/bar/pos",  icon: CreditCard },
+      { name: t("nav.menu"),       href: "/bar/menu", icon: Wine       },
     ],
   },
   {
     label: t("nav.group.casino"),
     colorKey: "casino",
     items: [
-      { name: "Casino", href: "/casino",      icon: Dice5   },
-      { name: "POS",           href: "/casino/pos",  icon: Layers  },
-      { name: t("nav.menu"),   href: "/casino/menu", icon: ChefHat },
+      { name: "Casino",           href: "/casino",      icon: Dice5   },
+      { name: "Casino POS",       href: "/casino/pos",  icon: Layers  },
+      { name: t("nav.menu"),      href: "/casino/menu", icon: ChefHat },
     ],
   },
   {
@@ -118,8 +120,8 @@ export const getNavGroups = (t: (key: string) => string) => [
     items: [
       { name: t("nav.clientInvoice"), href: "/invoices/client", icon: Receipt    },
       { name: t("nav.dailyInvoice"),  href: "/invoices/daily",  icon: FileText   },
-      { name: t("nav.cash"),          href: "/cash",             icon: Banknote   },
-      { name: t("nav.reports"),       href: "/reports",          icon: TrendingUp },
+      { name: t("nav.cash"),          href: "/cash",            icon: Banknote   },
+      { name: t("nav.reports"),       href: "/reports",         icon: TrendingUp },
     ],
   },
   {
@@ -145,24 +147,25 @@ const roleAccess: Record<Role, string[]> = {
     "/notifications", "/settings", "/team", "/room-inspection",
   ],
   manager: [
-    "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
+    "/", "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
+    "/hotel", "/hotel/pos", "/hotel/menu",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/bar", "/bar/pos", "/bar/menu",
     "/invoices/client", "/invoices/daily", "/cash", "/reports",
     "/notifications", "/settings",
   ],
   reception: [
-    "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm",
+    "/", "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/invoices/client",
     "/notifications", "/settings",
   ],
-  serveur:      ["/restaurant", "/restaurant/pos", "/notifications", "/settings"],
-  compta:       ["/invoices/client", "/invoices/daily", "/cash", "/reports", "/notifications", "/settings"],
-  housekeeping: ["/housekeeping", "/notifications", "/settings"],
-  cuisine:      ["/restaurant", "/notifications", "/settings"],
-  spa:          ["/notifications", "/settings"],
-  bar:          ["/bar", "/bar/pos", "/notifications", "/settings"],
+  serveur:      ["/", "/restaurant", "/restaurant/pos", "/notifications", "/settings"],
+  compta:       ["/", "/invoices/client", "/invoices/daily", "/cash", "/reports", "/notifications", "/settings"],
+  housekeeping: ["/", "/housekeeping", "/notifications", "/settings"],
+  cuisine:      ["/", "/restaurant", "/restaurant/kds", "/notifications", "/settings"],
+  spa:          ["/", "/notifications", "/settings"],
+  bar:          ["/", "/bar", "/bar/pos", "/notifications", "/settings"],
 };
 
 // ─── NavButton ────────────────────────────────────────────────────────────────
@@ -174,15 +177,21 @@ type NavButtonProps = {
   isActive: boolean;
   colors: typeof GROUP_COLORS[keyof typeof GROUP_COLORS];
   navigate: (href: string) => void;
+  onClose?: () => void;
 };
 
-function NavButton({ item, index, total, isActive, colors, navigate }: NavButtonProps) {
+function NavButton({ item, index, total, isActive, colors, navigate, onClose }: NavButtonProps) {
   const bgStyle = fadeStyle(colors.rgb, index, total, isActive);
+
+  const handleClick = () => {
+    navigate(item.href);
+    if (onClose) onClose();
+  };
 
   return (
     <li>
       <button
-        onClick={() => navigate(item.href)}
+        onClick={handleClick}
         style={bgStyle}
         className={cn(
           "w-full flex items-center gap-3 px-3 h-9 rounded-md text-sm",
@@ -219,9 +228,10 @@ type CollapsibleGroupProps = {
   navigate: (href: string) => void;
   openKey: string | null;
   onToggle: (key: string) => void;
+  onClose?: () => void;
 };
 
-function CollapsibleGroup({ group, allowed, location, navigate, openKey, onToggle }: CollapsibleGroupProps) {
+function CollapsibleGroup({ group, allowed, location, navigate, openKey, onToggle, onClose }: CollapsibleGroupProps) {
   const colors      = GROUP_COLORS[group.colorKey as keyof typeof GROUP_COLORS];
   const visible     = group.items.filter((item) => allowed.includes(item.href));
   const hasActiveItem = visible.some((item) => location.pathname === item.href);
@@ -242,6 +252,7 @@ function CollapsibleGroup({ group, allowed, location, navigate, openKey, onToggl
             isActive={location.pathname === item.href}
             colors={colors}
             navigate={navigate}
+            onClose={onClose}
           />
         ))}
       </ul>
@@ -300,6 +311,7 @@ function CollapsibleGroup({ group, allowed, location, navigate, openKey, onToggl
                 isActive={location.pathname === item.href}
                 colors={colors}
                 navigate={navigate}
+                onClose={onClose}
               />
             ))}
           </ul>
@@ -309,9 +321,13 @@ function CollapsibleGroup({ group, allowed, location, navigate, openKey, onToggl
   );
 }
 
-// ─── Sidebar principale ───────────────────────────────────────────────────────
+// ─── Sidebar Content (réutilisable pour desktop et mobile) ───────────────────
 
-export function Sidebar() {
+type SidebarContentProps = {
+  onClose?: () => void;
+};
+
+function SidebarContent({ onClose }: SidebarContentProps) {
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
@@ -333,9 +349,18 @@ export function Sidebar() {
   const handleToggle = (key: string) =>
     setOpenGroup((prev) => (prev === key ? null : key));
 
-  return (
-    <div className="hidden md:flex min-h-screen w-64 flex-col bg-background border-r">
+  const handleLogout = () => {
+    logout();
+    if (onClose) onClose();
+  };
 
+  const handleNavigate = (href: string) => {
+    navigate(href);
+    if (onClose) onClose();
+  };
+
+  return (
+    <>
       {/* HEADER */}
       <div className="h-16 border-b flex items-center px-4 gap-3 group">
         <img
@@ -356,9 +381,10 @@ export function Sidebar() {
             group={group}
             allowed={allowed}
             location={location}
-            navigate={navigate}
+            navigate={handleNavigate}
             openKey={openGroup}
             onToggle={handleToggle}
+            onClose={onClose}
           />
         ))}
       </nav>
@@ -368,7 +394,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
-          onClick={() => navigate("/notifications")}
+          onClick={() => handleNavigate("/notifications")}
         >
           <Bell className="mr-3 h-5 w-5" />
           {t("nav.notifications")}
@@ -376,7 +402,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
-          onClick={() => navigate("/settings")}
+          onClick={() => handleNavigate("/settings")}
         >
           <Settings className="mr-3 h-5 w-5" />
           {t("nav.settings")}
@@ -384,12 +410,43 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-          onClick={logout}
+          onClick={handleLogout}
         >
           <LogOut className="mr-3 h-5 w-5" />
           {t("profile.logout")}
         </Button>
       </div>
+    </>
+  );
+}
+
+// ─── Sidebar principale (Desktop) ────────────────────────────────────────────
+
+export function Sidebar() {
+  return (
+    <div className="hidden md:flex min-h-screen w-64 flex-col bg-background border-r">
+      <SidebarContent />
+    </div>
+  );
+}
+
+// ─── MobileSidebar (version mobile avec Sheet) ────────────────────────────────
+
+export function MobileSidebar() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="md:hidden">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-10 w-10">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent onClose={() => setOpen(false)} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
