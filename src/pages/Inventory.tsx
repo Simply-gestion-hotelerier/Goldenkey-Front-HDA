@@ -1199,7 +1199,7 @@ ${t('inventory.reportGenerated')}
                   <SelectContent>
                     {sortedStores && sortedStores.length > 0 ? (
                       sortedStores.map((st: any) => (
-                        <SelectItem key={st.id} value={String(st.id)}>{st.name}</SelectItem>
+                        <SelectItem key={st.id} value={String(st.id)}>{st.name}</SelectItem> 
                       ))
                     ) : (
                       <SelectItem value="no-stores" disabled>Aucun magasin disponible</SelectItem>
