@@ -1,6 +1,6 @@
 // ============================================================
-// BAR POS - VERSION FRANÇAISE COMPLÈTE
-// Tous les textes sont en français directement dans le composant
+// HOTEL POS - VERSION FRANÇAISE COMPLÈTE
+// Numéro de facture fixe par commande, change à la clôture
 // ============================================================
 
 import { Header } from "@/components/layout/header";
@@ -17,7 +17,7 @@ import {
   Clock, RefreshCw, MessageSquare, Printer, FileText,
   CheckCircle2, XCircle, ChevronDown, ChevronRight,
   ChevronLeft, Info, Hash, Tag, Percent, X, CreditCard,
-  Users, Hotel as HotelIcon, Plus, CheckCheck,
+  Users, Hotel as HotelIcon, Plus, Minus, CheckCheck,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,11 +27,38 @@ import { WaiterAssignment } from "./WaiterAssignment";
 
 // ── Helpers numbers ────────────────────────────────────────────────────────────
 
-const generateInvoiceNumber = (_orderId?: number) => {
+// Génère un numéro de facture unique avec lettres
+const generateNewInvoiceNumber = () => {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let code5 = "";
   for (let i = 0; i < 5; i++) code5 += letters.charAt(Math.floor(Math.random() * letters.length));
-  return `INV-${code5}`;
+  const timestamp = Date.now().toString().slice(-4);
+  return `INV-${code5}${timestamp}`;
+};
+
+// Récupère ou génère un numéro de facture pour une commande
+const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoice?: string) => {
+  // Si la commande est clôturée ou annulée, on peut générer un nouveau numéro
+  if (status === "closed" || status === "cancelled") {
+    return existingInvoice || generateNewInvoiceNumber();
+  }
+
+  // Pour les commandes actives, on utilise le numéro existant ou on en génère un nouveau
+  const key = `hotel_invoice_${orderId}`;
+  const stored = localStorage.getItem(key);
+
+  if (stored) return stored;
+  if (existingInvoice) return existingInvoice;
+
+  const newInvoice = generateNewInvoiceNumber();
+  localStorage.setItem(key, newInvoice);
+  return newInvoice;
+};
+
+// Nettoie le cache quand une commande est clôturée
+const clearInvoiceCache = (orderId: number) => {
+  const key = `hotel_invoice_${orderId}`;
+  localStorage.removeItem(key);
 };
 
 const formatOrderNumber = (orderId: number, createdAt?: string) => {
@@ -72,7 +99,7 @@ const DEPT_COLORS: Record<string, string> = {
 };
 
 const FIRE_STYLE: Record<string, string> = {
-  commanded: "bg-blue-100 text-yellow-800 border-yellow-200",
+  commanded: "bg-yellow-100 text-yellow-800 border-yellow-200",
   preparing: "bg-blue-100 text-blue-800 border-blue-200",
   ready: "bg-purple-100 text-purple-800 border-purple-200",
   delivered: "bg-green-100 text-green-800 border-green-200",
@@ -96,9 +123,9 @@ function FireBadge({ status }: { status: string }) {
 // ── Restaurant info ───────────────────────────────────────────────────────────
 
 const RESTAURANT = {
-  name: "Hôtel de l'Avenue — Restaurant Service",
+  name: "Hôtel de l'Avenue — Service Hôtelier",
   address: "Antsirabe, Madagascar",
-  phone: " +261 34 20 310 30",
+  phone: "+261 034 20 310 30",
   email: "contact@hdahotel.com"
 };
 
@@ -175,7 +202,7 @@ function print80mm(tableCode: string, order: any) {
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
+  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
 
   const lines: string[] = [
     ctr(RESTAURANT.name, W),
@@ -186,7 +213,7 @@ function print80mm(tableCode: string, order: any) {
     sep,
     padL("N° commande :", orderNumber, W),
     padL("N° facture  :", invoiceNumber, W),
-    padL("Table       :", tableCode, W),
+    padL("Table/Chambre :", tableCode, W),
     padL("Commande    :", `#${order.id}`, W),
     padL("Date        :", new Date().toLocaleDateString("fr-FR"), W),
     padL("Heure       :", new Date().toLocaleTimeString("fr-FR"), W),
@@ -281,7 +308,7 @@ function printA4(tableCode: string, order: any) {
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
+  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
 
   const rows = (order.lines ?? [])
     .map(
@@ -318,7 +345,7 @@ function printA4(tableCode: string, order: any) {
         ${op ? `<br/><small style="color:#7c3aed;font-weight:600">👤 Opérateur : ${op}</small>` : ""}
         </td>
       <td style="text-align:right;padding:8px;color:#059669;font-weight:600">-${fmt(p.amount)} Ar</td>
-     </table>`;
+     </td>`;
     })
     .join("");
 
@@ -328,7 +355,7 @@ function printA4(tableCode: string, order: any) {
           <td colspan="3" style="text-align:right;padding:8px;color:#b45309">
             Remise${order.discountReason ? ` — ${order.discountReason}` : ""}
             ${order.discountType === "percent" ? ` (${Math.round((discount / subtotal) * 100)}%)` : ""}
-           </td>
+            </td>
           <td style="text-align:right;padding:8px;color:#b45309;font-weight:700">-${fmt(discount)} Ar</td>
         </tr>`
       : "";
@@ -407,10 +434,10 @@ function printA4(tableCode: string, order: any) {
     </div>
 
     <div class="info-card">
-      <div class="info-item"><strong>Table :</strong> ${tableCode}</div>
+      <div class="info-item"><strong>Table/Chambre :</strong> ${tableCode}</div>
       <div class="info-item"><strong>Date :</strong> ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
       <div class="info-item"><strong>Heure :</strong> ${new Date().toLocaleTimeString("fr-FR")}</div>
-      <div class="info-item"><strong>Service :</strong> ${order.serviceType ?? "Sur place"}</div>
+      <div class="info-item"><strong>Service :</strong> ${order.serviceType ?? "Room Service"}</div>
       <div class="info-item"><strong>Serveur :</strong> ${operatorLabel(order.payments?.[0]) ?? "—"}</div>
     </div>
 
@@ -472,9 +499,7 @@ function printA4(tableCode: string, order: any) {
 }
 
 // ── CardFeesInfoBanner ────────────────────────────────────────────────────────
-// BarPOS — no folio chambre feature
 
-// CardFeesInfoBanner
 function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
   if (cardAmount <= 0) return null;
   const fees = Math.round(cardAmount * CARD_FEE_RATE);
@@ -542,7 +567,6 @@ export default function HotelPOS() {
   const [showDiscountForm, setShowDiscountForm] = useState(false);
 
   const qo = { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 };
-  const today = new Date().toISOString().slice(0, 10);
 
   const changeToGive = useMemo(() => {
     const a = Number(payAmount);
@@ -589,20 +613,24 @@ export default function HotelPOS() {
     ...qo,
   });
 
+  // Récupérer TOUTES les commandes (pas seulement open)
   const { data: allOrders = [], refetch: refetchOrders } = useQuery({
     queryKey: ["orders", "hotel"],
-    queryFn: () => api.get<any[]>("/hotel/orders?status=open"),
+    queryFn: async () => {
+      const orders = await api.get<any[]>("/hotel/orders");
+      return orders;
+    },
     ...qo,
   });
 
-  // Derived
+  // Derived - Filtrer les commandes actives (non fermées)
   const tableOrders = useMemo(
-    () => (allOrders as any[]).filter((o: any) => o.table?.code === table),
+    () => (allOrders as any[]).filter((o: any) => o.table?.code === table && o.status !== "closed" && o.status !== "cancelled"),
     [allOrders, table]
   );
 
   const getTableOrders = (code: string) =>
-    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status === "open");
+    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status !== "closed" && o.status !== "cancelled");
 
   const filteredDishes = useMemo(() => {
     if (!Array.isArray(dishes)) return [];
@@ -648,10 +676,18 @@ export default function HotelPOS() {
 
   const createOrder = useMutation({
     mutationFn: async (tableCode: string) => {
-      const invoiceNumber = generateInvoiceNumber();
+      const invoiceNumber = generateNewInvoiceNumber();
       return api.post("/hotel/orders", { dept: "hotel", tableCode, invoiceNumber });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders", "hotel"] }),
+    onSuccess: (response) => {
+      if (response?.id) {
+        const key = `hotel_invoice_${response.id}`;
+        if (response.invoiceNumber) {
+          localStorage.setItem(key, response.invoiceNumber);
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+    },
   });
 
   const addLine = useMutation({
@@ -681,12 +717,39 @@ export default function HotelPOS() {
   });
 
   const incrementLine = useMutation({
-    mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) =>
-      api.patch(`/hotel/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 }),
+    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
+      const response = await api.patch(`/hotel/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 });
+      return response.data;
+    },
     onSuccess: async (_, { orderId }) => {
-      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+      await qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
       await refetchOrders();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        await refreshSelectedOrder(orderId);
+      }
       toast({ title: "Quantité augmentée" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+  });
+
+  // Mutation pour diminuer la quantité
+  const decrementLine = useMutation({
+    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
+      if (currentQty <= 1) {
+        await api.del(`/hotel/orders/${orderId}/lines/${lineId}`);
+        return { deleted: true };
+      }
+      const response = await api.patch(`/hotel/orders/${orderId}/lines/${lineId}`, { qty: currentQty - 1 });
+      return { deleted: false, data: response.data };
+    },
+    onSuccess: async (result, { orderId }) => {
+      await qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+      await refetchOrders();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        await refreshSelectedOrder(orderId);
+      }
+      toast({ title: result?.deleted ? "Article supprimé" : "Quantité diminuée" });
     },
     onError: (e: any) =>
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -700,6 +763,7 @@ export default function HotelPOS() {
   const closeOrder = useMutation({
     mutationFn: async (id: number) => api.post(`/hotel/orders/${id}/close`),
     onSuccess: async (_, id) => {
+      clearInvoiceCache(id);
       qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
       await refreshSelectedOrder(id);
       toast({ title: "Commande clôturée" });
@@ -785,7 +849,6 @@ export default function HotelPOS() {
     try {
       const order = await api.get<any>(`/hotel/orders/${orderId}`);
       if (!order.orderNumber) order.orderNumber = formatOrderNumber(order.id, order.createdAt);
-      if (!order.invoiceNumber) order.invoiceNumber = generateInvoiceNumber(order.id);
       setSelectedOrder(order);
     } catch {
       toast({ title: "Impossible de charger la commande", variant: "destructive" });
@@ -806,7 +869,7 @@ export default function HotelPOS() {
   };
 
   const createOrderIfNeeded = async (tc: string): Promise<number> => {
-    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status === "open");
+    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status !== "closed" && o.status !== "cancelled");
     if (ex) return ex.id;
     const response = await createOrder.mutateAsync(tc);
     return (response as any).id;
@@ -846,11 +909,19 @@ export default function HotelPOS() {
 
   const statusBadge = (s: string) => {
     const styles: Record<string, string> = {
-      open: "bg-blue-50 text-yellow-700 border-yellow-200",
+      open: "bg-yellow-50 text-yellow-700 border-yellow-200",
       closed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
+      pending: "bg-blue-50 text-blue-700 border-blue-200",
+      preparing: "bg-purple-50 text-purple-700 border-purple-200",
     };
-    const labels: Record<string, string> = { open: "Active", closed: "Fermée", cancelled: "Annulée" };
+    const labels: Record<string, string> = {
+      open: "Active",
+      closed: "Fermée",
+      cancelled: "Annulée",
+      pending: "En attente",
+      preparing: "Préparation"
+    };
     return <Badge variant="outline" className={styles[s] ?? styles.open}>{labels[s] ?? s}</Badge>;
   };
 
@@ -907,7 +978,7 @@ export default function HotelPOS() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-3xl font-bold">Hôtel POS</h1>
-              <p className="text-muted-foreground">Tables → Articles → Paiement</p>
+              <p className="text-muted-foreground">Tables/Chambres → Articles → Paiement</p>
             </div>
 
             <div className="flex gap-1 bg-muted rounded-lg p-1">
@@ -922,7 +993,7 @@ export default function HotelPOS() {
                 >
                   {tab === "pos" && <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
                   {tab === "waiters" && <Users className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
-                  {tab === "pos" ? "Bar" : "Serveurs"}
+                  {tab === "pos" ? "Hôtel" : "Serveurs"}
                 </button>
               ))}
             </div>
@@ -934,12 +1005,12 @@ export default function HotelPOS() {
 
               {/* Tables */}
               <Card>
-                <CardHeader><CardTitle>Tables</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Tables / Chambres</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex gap-2">
                     <input
                       className="flex-1 px-3 py-2 rounded border bg-background text-sm"
-                      placeholder="Code (ex: R1)"
+                      placeholder="Code (ex: R1 ou CH101)"
                       value={newTableCode}
                       onChange={e => setNewTableCode(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && newTableCode.trim() && createTable.mutate(newTableCode.trim())}
@@ -972,7 +1043,7 @@ export default function HotelPOS() {
                             title={tOrders.length > 0 ? "Commandes actives" : "Supprimer"}
                             onClick={() => {
                               if (tOrders.length > 0) { toast({ title: "Fermez d'abord les commandes", variant: "destructive" }); return; }
-                              if (confirm(`Supprimer la table ${code} ?`)) removeTable.mutate(t.id);
+                              if (confirm(`Supprimer ${code} ?`)) removeTable.mutate(t.id);
                             }}
                           >
                             {removeTable.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : tOrders.length > 0 ? <Clock className="w-4 h-4 text-orange-500" /> : <Trash2 className="w-4 h-4 text-red-600" />}
@@ -1084,16 +1155,16 @@ export default function HotelPOS() {
                 </CardHeader>
                 <CardContent>
                   {!table ? (
-                    <div className="text-sm text-muted-foreground text-center py-6">Sélectionnez une table</div>
+                    <div className="text-sm text-muted-foreground text-center py-6">Sélectionnez une table/chambre</div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">Table <span className="font-semibold text-foreground">{table}</span></p>
+                      <p className="text-sm text-muted-foreground">Table/Chambre <span className="font-semibold text-foreground">{table}</span></p>
                       {tableOrders.length === 0 ? (
                         <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg">Aucune commande active</div>
                       ) : (
                         tableOrders.map((order: any) => {
                           const orderNum = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-                          const invoiceNum = order.invoiceNumber || generateInvoiceNumber(order.id);
+                          const invoiceNum = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
                           const sub = orderSubtotal(order);
                           const disc = orderDiscount(order);
                           const tot = orderTotal(order);
@@ -1145,22 +1216,47 @@ export default function HotelPOS() {
                                           <div className="font-semibold whitespace-nowrap">{fmt(line.unitPrice * line.qty)} Ar</div>
                                           {order.status === "open" && (
                                             <div className="flex gap-1">
-                                              {/* + Quantité */}
+                                              {/* Bouton MOINS */}
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-6 w-6 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                                                title="Enlever 1 unité"
+                                                disabled={decrementLine.isPending}
+                                                onClick={async () => {
+                                                  try {
+                                                    await decrementLine.mutateAsync({
+                                                      orderId: order.id,
+                                                      lineId: line.id,
+                                                      currentQty: line.qty,
+                                                    });
+                                                    await refetchOrders();
+                                                  } catch (error) {
+                                                    console.error("Erreur:", error);
+                                                  }
+                                                }}
+                                              >
+                                                <Minus className="h-3.5 w-3.5" />
+                                              </Button>
+                                              {/* Bouton PLUS */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
                                                 className="h-6 w-6 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
                                                 title="Ajouter 1 unité"
                                                 disabled={incrementLine.isPending}
-                                                onClick={() => incrementLine.mutate({
-                                                  orderId: order.id,
-                                                  lineId: line.id,
-                                                  currentQty: line.qty,
-                                                })}
+                                                onClick={async () => {
+                                                  await incrementLine.mutateAsync({
+                                                    orderId: order.id,
+                                                    lineId: line.id,
+                                                    currentQty: line.qty,
+                                                  });
+                                                  await refetchOrders();
+                                                }}
                                               >
                                                 <Plus className="h-3.5 w-3.5" />
                                               </Button>
-                                              {/* Livré */}
+                                              {/* Bouton Livré */}
                                               {line.fireStatus !== "delivered" && (
                                                 <Button
                                                   size="sm"
@@ -1232,7 +1328,6 @@ export default function HotelPOS() {
               tables={tables as any[]}
               onAssignmentChange={() => {
                 refetchOrders();
-                // Rafraîchir d'autres données si nécessaire
               }}
             />
           )}
@@ -1335,7 +1430,9 @@ export default function HotelPOS() {
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Commande {selectedOrder?.orderNumber || `#${selectedOrder?.id}`}</DialogTitle>
-            <DialogDescription>Table {selectedOrder?.table?.code ?? "—"} · {selectedOrder?.status === "open" ? "Active" : "Fermée"}</DialogDescription>
+            <DialogDescription>
+              Table/Chambre {selectedOrder?.table?.code ?? "—"} · Statut: {statusBadge(selectedOrder?.status)}
+            </DialogDescription>
           </DialogHeader>
 
           {loadingOrder && <div className="py-8 text-center text-muted-foreground text-sm">Chargement…</div>}
@@ -1347,7 +1444,7 @@ export default function HotelPOS() {
             const paid = orderPaid(selectedOrder);
             const bal = orderBalance(selectedOrder);
             const orderNum = selectedOrder.orderNumber || formatOrderNumber(selectedOrder.id, selectedOrder.createdAt);
-            const invoiceNum = selectedOrder.invoiceNumber || generateInvoiceNumber(selectedOrder.id);
+            const invoiceNum = getInvoiceNumberForOrder(selectedOrder.id, selectedOrder.status, selectedOrder.invoiceNumber);
 
             return (
               <div className="space-y-4">
@@ -1445,7 +1542,7 @@ export default function HotelPOS() {
                   <CardFeesInfoBanner cardAmount={currentCardFees.cardAmount} />
                 )}
 
-                {/* DISCOUNT */}
+                {/* DISCOUNT - Seulement pour les commandes ouvertes */}
                 {selectedOrder.status === "open" && (
                   <div className="border border-amber-200 rounded-lg overflow-hidden">
                     <button
@@ -1594,7 +1691,7 @@ export default function HotelPOS() {
                   </div>
                 )}
 
-                {/* Payment collection */}
+                {/* Payment collection - Seulement pour les commandes ouvertes avec solde */}
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
@@ -1602,12 +1699,13 @@ export default function HotelPOS() {
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
                         <Input
-                          disabled
                           type="number" min={1}
                           placeholder={bal > 0 ? `Restant : ${fmt(bal)} Ar` : "Montant"}
                           value={payAmount}
                           onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
+                            let v = Number(e.target.value);
+                            if (isNaN(v)) v = 0;
+                            v = Math.max(0, Math.min(v, bal));
                             setPayAmount(v || "");
                             if (receivedAmount !== "" && Number(receivedAmount) < v) setReceivedAmount(v);
                           }}
@@ -1634,9 +1732,9 @@ export default function HotelPOS() {
                           placeholder={payAmount ? `Min : ${fmt(Number(payAmount))} Ar` : "Payé"}
                           value={receivedAmount}
                           onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
+                            let v = Number(e.target.value);
+                            if (isNaN(v)) v = 0;
                             setReceivedAmount(v || "");
-                            setPayAmount(Math.min(v, bal));
                           }}
                         />
                       </div>
