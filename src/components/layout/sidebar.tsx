@@ -70,7 +70,7 @@ export const getNavGroups = (t: (key: string) => string) => [
     colorKey: "lodging",
     items: [
       { name: t("nav.hotelrooms"),     href: "/hotelrooms",   icon: BedDouble    },
-      { name: t("nav.roomPlan"),       href: "/hotel/plan",   icon: Map          },
+      { name: t("nav.roomPlan"),       href: "/hotelrooms/plan",   icon: Map          },
       { name: t("nav.roomManagement"), href: "/rooms/manage", icon: LayoutGrid   },
       { name: t("nav.reservations"),   href: "/reservations", icon: CalendarDays },
       { name: t("nav.crm"),            href: "/crm",          icon: Users        },
@@ -137,7 +137,7 @@ export const getNavGroups = (t: (key: string) => string) => [
 
 const roleAccess: Record<Role, string[]> = {
   admin: [
-    "/", "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
     "/hotel", "/hotel/pos", "/hotel/menu",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/bar", "/bar/pos", "/bar/menu",
@@ -147,7 +147,7 @@ const roleAccess: Record<Role, string[]> = {
     "/notifications", "/settings", "/team", "/room-inspection",
   ],
   manager: [
-    "/", "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
     "/hotel", "/hotel/pos", "/hotel/menu",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/bar", "/bar/pos", "/bar/menu",
@@ -155,7 +155,7 @@ const roleAccess: Record<Role, string[]> = {
     "/notifications", "/settings",
   ],
   reception: [
-    "/", "/hotelrooms", "/hotel/plan", "/rooms/manage", "/reservations", "/crm",
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm",
     "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
     "/invoices/client",
     "/notifications", "/settings",
