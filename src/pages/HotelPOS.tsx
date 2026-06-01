@@ -1821,6 +1821,7 @@ export default function HotelPOS() {
                         {closeOrder.isPending ? "…" : "Fermer"}
                       </Button>
                     )}
+                    
                     <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)}>Fermer</Button>
                   </div>
                 </div>
