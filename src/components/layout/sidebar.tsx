@@ -93,7 +93,7 @@ export const getNavGroups = (t: (key: string) => string) => [
       { name: t("nav.restaurant"),        href: "/restaurant",      icon: UtensilsCrossed },
       { name: "Restaurant POS",           href: "/restaurant/pos",  icon: ClipboardList   },
       { name: t("nav.menu"),              href: "/restaurant/menu", icon: Scroll          },
-      { name: "KDS (Cuisine)",            href: "/restaurant/kds",  icon: ChefHat         },
+      /*{ name: "KDS (Cuisine)",            href: "/restaurant/kds",  icon: ChefHat         },*/
     ],
   },
   {
@@ -120,7 +120,7 @@ export const getNavGroups = (t: (key: string) => string) => [
     items: [
       { name: t("nav.clientInvoice"), href: "/invoices/client", icon: Receipt    },
       { name: t("nav.dailyInvoice"),  href: "/invoices/daily",  icon: FileText   },
-      { name: t("nav.cash"),          href: "/cash",            icon: Banknote   },
+    /* { name: t("nav.cash"),          href: "/cash",            icon: Banknote   },*/
       { name: t("nav.reports"),       href: "/reports",         icon: TrendingUp },
     ],
   },
@@ -164,7 +164,7 @@ const roleAccess: Record<Role, string[]> = {
   compta:       ["/", "/invoices/client", "/invoices/daily", "/cash", "/reports", "/notifications", "/settings"],
   housekeeping: ["/", "/housekeeping", "/notifications", "/settings"],
   cuisine:      ["/", "/restaurant", "/restaurant/kds", "/notifications", "/settings"],
-  spa:          ["/", "/notifications", "/settings"],
+
   bar:          ["/", "/bar", "/bar/pos", "/notifications", "/settings"],
 };
 

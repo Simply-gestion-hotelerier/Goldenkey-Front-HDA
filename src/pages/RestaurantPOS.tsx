@@ -252,7 +252,16 @@ function print80mm(tableCode: string, order: any) {
     lines.push(dsh);
   }
 
-  lines.push(padL(bal > 0 ? "RESTANT" : "PAYÉ", fmt(bal) + " Ar", W));
+  // Afficher le reste à payer ou le crédit client
+  if (bal > 0) {
+    lines.push(padL("RESTE À PAYER", fmt(bal) + " Ar", W));
+  } else if (paid > total) {
+    const credit = paid - total;
+    lines.push(padL("CRÉDIT CLIENT", fmt(credit) + " Ar", W));
+    lines.push(padL("(À déduire prochaine commande)", "", W));
+  } else {
+    lines.push(padL("PAYÉ", "0 Ar", W));
+  }
   lines.push(sep);
 
   if (cardAmount > 0) {
@@ -471,9 +480,14 @@ function printA4(tableCode: string, order: any) {
       : ""}
       </tfoot>
     </table>
-
-    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : "#065f46"}">
-      ${balance > 0 ? `Montant dû : ${fmt(balance)} Ar` : "✓ Solde payé"}
+<div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"};padding:16px;border-radius:8px;text-align:center;font-weight:700;font-size:14px;margin:16px 0;">
+  ${balance > 0 
+    ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+    : paid > total 
+      ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
+      : "✓ SOLDE PAYÉ"
+  }
+</div>
     </div>
 
     ${cardFeesSummaryBlock}
@@ -924,24 +938,28 @@ export default function RestaurantPOS() {
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
   const handlePay = () => {
-    const amt = Number(payAmount);
     const rcv = Number(receivedAmount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Montant de paiement invalide", variant: "destructive" });
+    const balActuel = orderBalance(selectedOrder);
+
+    if (!rcv || rcv <= 0) {
+      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
       return;
     }
-    if (receivedAmount !== "" && rcv < amt) {
+
+    if (rcv < balActuel) {
       toast({
-        title: `Le montant reçu (${fmt(rcv)} Ar) doit être supérieur ou égal au montant dû (${fmt(amt)} Ar)`,
+        title: "Montant insuffisant",
+        description: `Le montant reçu (${fmt(rcv)} Ar) est inférieur au montant dû (${fmt(balActuel)} Ar)`,
         variant: "destructive",
       });
       return;
     }
+
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: amt,
+      amount: rcv,
       method: payMethod,
-      receivedAmount: receivedAmount !== "" ? rcv : undefined,
+      receivedAmount: rcv,
     });
   };
 
@@ -1687,20 +1705,16 @@ export default function RestaurantPOS() {
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
+
+                    {/* Montant à collecter - désactivé et auto-rempli */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
                         <Input
-                          type="number" min={1}
-                          placeholder={bal > 0 ? `Restant : ${fmt(bal)} Ar` : "Montant"}
-                          value={payAmount}
-                          onChange={e => {
-                            let v = Number(e.target.value);
-                            if (isNaN(v)) v = 0;
-                            v = Math.max(0, Math.min(v, bal));
-                            setPayAmount(v || "");
-                            if (receivedAmount !== "" && Number(receivedAmount) < v) setReceivedAmount(v);
-                          }}
+                          type="number"
+                          value={bal}
+                          disabled
+                          className="bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div>
@@ -1716,43 +1730,68 @@ export default function RestaurantPOS() {
                         </Select>
                       </div>
                     </div>
+
+                    {/* Montant reçu - seul champ actif */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
                         <Input
-                          type="number" min={Number(payAmount) || 0}
-                          placeholder={payAmount ? `Min : ${fmt(Number(payAmount))} Ar` : "Payé"}
+                          type="number"
+                          min={bal}
+                          step={100}
+                          placeholder={`Montant reçu (min: ${fmt(bal)} Ar)`}
                           value={receivedAmount}
                           onChange={e => {
-                            let v = Number(e.target.value);
-                            if (isNaN(v)) v = 0;
+                            const v = Math.max(0, Number(e.target.value));
                             setReceivedAmount(v || "");
                           }}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && receivedAmount && Number(receivedAmount) >= bal) {
+                              handlePay();
+                            }
+                          }}
+                          autoFocus
                         />
                       </div>
                       <div className="flex flex-col justify-end">
-                        {changeToGive > 0 ? (
-                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                            <div className="text-xs text-blue-600">Monnaie à rendre</div>
-                            <div className="font-bold text-blue-700 text-lg">{fmt(changeToGive)} Ar</div>
-                          </div>
-                        ) : (
-                          <div className="bg-muted/30 rounded p-2 text-center">
-                            <div className="text-xs text-muted-foreground">Monnaie</div>
-                            <div className="font-medium text-muted-foreground">0 Ar</div>
-                          </div>
-                        )}
+                        {(() => {
+                          const rcv = receivedAmount !== "" ? Number(receivedAmount) : 0;
+                          if (rcv >= bal) {
+                            const change = rcv - bal;
+                            return (
+                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
+                                <div className="text-xs text-blue-600">Monnaie à rendre</div>
+                                <div className="font-bold text-blue-700 text-lg">{fmt(change)} Ar</div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="bg-muted/30 rounded p-2 text-center">
+                              <div className="text-xs text-muted-foreground">Monnaie</div>
+                              <div className="font-medium text-muted-foreground">0 Ar</div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
-                    {payAmount !== "" && bal > 0 && Number(payAmount) > bal && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
-                        Le montant du paiement ({fmt(Number(payAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
-                        Un crédit de {fmt(Number(payAmount) - bal)} Ar sera enregistré.
+                    {/* Message si montant reçu insuffisant */}
+                    {receivedAmount !== "" && Number(receivedAmount) < bal && (
+                      <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-1.5">
+                        ❌ Le montant reçu ({fmt(Number(receivedAmount))} Ar) est inférieur au montant dû ({fmt(bal)} Ar)
                       </div>
                     )}
 
-                    {payMethod === "card" && payAmount !== "" && Number(payAmount) > 0 && (
+                    {/* Message de crédit si montant reçu > solde */}
+                    {receivedAmount !== "" && Number(receivedAmount) > bal && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+                        ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
+                        Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
+                      </div>
+                    )}
+
+                    {/* Informations carte bancaire */}
+                    {payMethod === "card" && receivedAmount !== "" && Number(receivedAmount) > 0 && Number(receivedAmount) >= bal && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                         <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
                           <CreditCard className="h-3.5 w-3.5 shrink-0" />
@@ -1761,19 +1800,19 @@ export default function RestaurantPOS() {
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Montant consommé collecté</span>
-                            <span className="font-semibold text-green-700">{fmt(Number(payAmount))} Ar</span>
+                            <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
-                            <span className="text-red-600 font-semibold">+{fmt(nextCardFeePreview)} Ar</span>
+                            <span className="text-red-600 font-semibold">+{fmt(Math.round(Number(receivedAmount) * 0.05))} Ar</span>
                           </div>
                           <div className="flex justify-between border-t border-blue-200 pt-1">
                             <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
-                            <span className="text-blue-800 font-bold">{fmt(Number(payAmount) + nextCardFeePreview)} Ar</span>
+                            <span className="text-blue-800 font-bold">{fmt(Math.round(Number(receivedAmount) * 1.05))} Ar</span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground italic">
-                          L'établissement collecte {fmt(Number(payAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                          L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(Math.round(Number(receivedAmount) * 0.05))} Ar de frais sont retenus par la banque.
                         </p>
                       </div>
                     )}
@@ -1782,15 +1821,20 @@ export default function RestaurantPOS() {
                       className="w-full"
                       onClick={handlePay}
                       disabled={
-                        payOrder.isPending || !payAmount || Number(payAmount) <= 0 ||
-                        (receivedAmount !== "" && Number(receivedAmount) < Number(payAmount))
+                        payOrder.isPending ||
+                        !receivedAmount ||
+                        Number(receivedAmount) <= 0 ||
+                        Number(receivedAmount) < bal
                       }
                     >
-                      {payOrder.isPending ? "…" : `Collecter ${payAmount ? fmt(Number(payAmount)) + " Ar" : ""}`}
+                      {payOrder.isPending ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Traitement...</>
+                      ) : (
+                        `Collecter ${receivedAmount ? fmt(Number(receivedAmount)) + " Ar" : ""}`
+                      )}
                     </Button>
                   </div>
                 )}
-
                 {selectedOrder.status === "open" && bal === 0 && (
                   <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded p-3 text-sm font-medium">
                     <CheckCircle2 className="h-4 w-4" /> Commande entièrement payée
@@ -1813,7 +1857,7 @@ export default function RestaurantPOS() {
                         {closeOrder.isPending ? "…" : "Fermer"}
                       </Button>
                     )}
-                    
+
                     <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)}>Fermer</Button>
                   </div>
                 </div>

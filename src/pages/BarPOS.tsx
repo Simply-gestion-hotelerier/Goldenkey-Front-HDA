@@ -38,12 +38,10 @@ const generateNewInvoiceNumber = () => {
 
 // Récupère ou génère un numéro de facture pour une commande
 const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoice?: string) => {
-  // Si la commande est clôturée ou annulée, on peut générer un nouveau numéro
   if (status === "closed" || status === "cancelled") {
     return existingInvoice || generateNewInvoiceNumber();
   }
 
-  // Pour les commandes actives, on utilise le numéro existant ou on en génère un nouveau
   const key = `invoice_${orderId}`;
   const stored = localStorage.getItem(key);
 
@@ -251,7 +249,16 @@ function print80mm(tableCode: string, order: any) {
     lines.push(dsh);
   }
 
-  lines.push(padL(bal > 0 ? "RESTANT" : "PAYÉ", fmt(bal) + " Ar", W));
+  // Afficher le reste à payer ou le crédit client
+  if (bal > 0) {
+    lines.push(padL("RESTE À PAYER", fmt(bal) + " Ar", W));
+  } else if (paid > total) {
+    const credit = paid - total;
+    lines.push(padL("CRÉDIT CLIENT", fmt(credit) + " Ar", W));
+    lines.push(padL("(À déduire prochaine commande)", "", W));
+  } else {
+    lines.push(padL("PAYÉ", "0 Ar", W));
+  }
   lines.push(sep);
 
   if (cardAmount > 0) {
@@ -312,7 +319,7 @@ function printA4(tableCode: string, order: any) {
        <td style="text-align:right;padding:8px;">${fmt(l.unitPrice)} Ar</td>
        <td style="text-align:center;padding:8px;">${l.qty}</td>
        <td style="text-align:right;padding:8px;font-weight:600">${fmt(l.unitPrice * l.qty)} Ar</td>
-      </table>`
+      </tr>`
     )
     .join("");
 
@@ -403,7 +410,7 @@ function printA4(tableCode: string, order: any) {
       tfoot td { font-weight: 700; border-top: 2px solid #0f2744; padding: 10px; }
       tfoot td:not(:first-child) { text-align: right; }
       .discount-banner { background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;color:#92400e;display:flex;justify-content:space-between; }
-      .balance { padding: 16px; border-radius: 8px; text-align: right; font-weight: 700; font-size: 14px; margin: 16px 0; }
+      .balance { padding: 16px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 14px; margin: 16px 0; }
       .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; text-align: center; line-height: 1.8; }
     </style>
     </head><body>
@@ -471,8 +478,13 @@ function printA4(tableCode: string, order: any) {
       </tfoot>
     </table>
 
-    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : "#065f46"}">
-      ${balance > 0 ? `Montant dû : ${fmt(balance)} Ar` : "✓ Solde payé"}
+    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"}">
+      ${balance > 0 
+        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+        : paid > total 
+          ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar (à déduire sur prochaine commande)`
+          : "✓ SOLDE PAYÉ"
+      }
     </div>
 
     ${cardFeesSummaryBlock}
@@ -548,7 +560,6 @@ export default function BarPOS() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
-  const [payAmount, setPayAmount] = useState<number | "">("");
   const [receivedAmount, setReceivedAmount] = useState<number | "">("");
   const [payMethod, setPayMethod] = useState<"cash" | "card" | "mobile" | "bank">("cash");
 
@@ -558,13 +569,6 @@ export default function BarPOS() {
   const [showDiscountForm, setShowDiscountForm] = useState(false);
 
   const qo = { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 };
-
-  const changeToGive = useMemo(() => {
-    const a = Number(payAmount);
-    const r = Number(receivedAmount);
-    if (!a || !r || r < a) return 0;
-    return r - a;
-  }, [payAmount, receivedAmount]);
 
   const discountPreviewAr = useMemo(() => {
     if (!selectedOrder || discountInput === "") return 0;
@@ -580,9 +584,9 @@ export default function BarPOS() {
   }, [selectedOrder]);
 
   const nextCardFeePreview = useMemo(() => {
-    if (payMethod !== "card" || !payAmount || Number(payAmount) <= 0) return 0;
-    return Math.round(Number(payAmount) * CARD_FEE_RATE);
-  }, [payMethod, payAmount]);
+    if (payMethod !== "card" || !receivedAmount || Number(receivedAmount) <= 0) return 0;
+    return Math.round(Number(receivedAmount) * CARD_FEE_RATE);
+  }, [payMethod, receivedAmount]);
 
   // Queries
   const { data: tables = [] } = useQuery({
@@ -604,7 +608,6 @@ export default function BarPOS() {
     ...qo,
   });
 
-  // Récupérer TOUTES les commandes (pas seulement open)
   const { data: allOrders = [], refetch: refetchOrders } = useQuery({
     queryKey: ["orders", "lounge"],
     queryFn: async () => {
@@ -614,7 +617,6 @@ export default function BarPOS() {
     ...qo,
   });
 
-  // Derived - Filtrer les commandes actives (non fermées)
   const tableOrders = useMemo(
     () => (allOrders as any[]).filter((o: any) => o.table?.code === table && o.status !== "closed" && o.status !== "cancelled"),
     [allOrders, table]
@@ -724,12 +726,9 @@ export default function BarPOS() {
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
   });
 
-  // Mutation pour diminuer la quantité
-  // Mutation pour diminuer la quantité - CORRIGÉE
   const decrementLine = useMutation({
     mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
       if (currentQty <= 1) {
-        // Si la quantité est 1, on supprime la ligne
         await api.del(`/bar/orders/${orderId}/lines/${lineId}`);
         return { deleted: true };
       }
@@ -781,7 +780,6 @@ export default function BarPOS() {
         title: "Paiement enregistré",
         description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
       });
-      setPayAmount("");
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
       qc.invalidateQueries({ queryKey: ["orders", "lounge"] });
@@ -853,7 +851,6 @@ export default function BarPOS() {
   const openDetails = async (order: any) => {
     setDetailsOpen(true);
     setSelectedOrder(order);
-    setPayAmount("");
     setReceivedAmount("");
     setDiscountInput("");
     setDiscountReason("");
@@ -925,24 +922,28 @@ export default function BarPOS() {
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
   const handlePay = () => {
-    const amt = Number(payAmount);
     const rcv = Number(receivedAmount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Montant de paiement invalide", variant: "destructive" });
+    const balActuel = orderBalance(selectedOrder);
+
+    if (!rcv || rcv <= 0) {
+      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
       return;
     }
-    if (receivedAmount !== "" && rcv < amt) {
+
+    if (rcv < balActuel) {
       toast({
-        title: `Le montant reçu (${fmt(rcv)} Ar) doit être supérieur ou égal au montant dû (${fmt(amt)} Ar)`,
+        title: "Montant insuffisant",
+        description: `Le montant reçu (${fmt(rcv)} Ar) est inférieur au montant dû (${fmt(balActuel)} Ar)`,
         variant: "destructive",
       });
       return;
     }
+
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: amt,
+      amount: rcv,
       method: payMethod,
-      receivedAmount: receivedAmount !== "" ? rcv : undefined,
+      receivedAmount: rcv,
     });
   };
 
@@ -1174,7 +1175,7 @@ export default function BarPOS() {
                               </div>
                               {order.table?.assignedWaiter && (
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                  <User className="h-3 w-3" />
+                                  <Users className="h-3 w-3" />
                                   Serveur: {order.table.assignedWaiter.name}
                                 </div>
                               )}
@@ -1209,7 +1210,6 @@ export default function BarPOS() {
                                           <div className="font-semibold whitespace-nowrap">{fmt(line.unitPrice * line.qty)} Ar</div>
                                           {order.status === "open" && (
                                             <div className="flex gap-1">
-                                              {/* Bouton MOINS */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1231,7 +1231,6 @@ export default function BarPOS() {
                                               >
                                                 <Minus className="h-3.5 w-3.5" />
                                               </Button>
-                                              {/* Bouton PLUS */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1249,7 +1248,6 @@ export default function BarPOS() {
                                               >
                                                 <Plus className="h-3.5 w-3.5" />
                                               </Button>
-                                              {/* Bouton Livré */}
                                               {line.fireStatus !== "delivered" && (
                                                 <Button
                                                   size="sm"
@@ -1688,20 +1686,16 @@ export default function BarPOS() {
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
+
+                    {/* Montant à collecter - désactivé et auto-rempli */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
                         <Input
-                          type="number" min={1}
-                          placeholder={bal > 0 ? `Restant : ${fmt(bal)} Ar` : "Montant"}
-                          value={payAmount}
-                          onChange={e => {
-                            let v = Number(e.target.value);
-                            if (isNaN(v)) v = 0;
-                            v = Math.max(0, Math.min(v, bal));
-                            setPayAmount(v || "");
-                            if (receivedAmount !== "" && Number(receivedAmount) < v) setReceivedAmount(v);
-                          }}
+                          type="number"
+                          value={bal}
+                          disabled
+                          className="bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div>
@@ -1717,43 +1711,68 @@ export default function BarPOS() {
                         </Select>
                       </div>
                     </div>
+
+                    {/* Montant reçu - seul champ actif */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
                         <Input
-                          type="number" min={Number(payAmount) || 0}
-                          placeholder={payAmount ? `Min : ${fmt(Number(payAmount))} Ar` : "Payé"}
+                          type="number"
+                          min={bal}
+                          step={100}
+                          placeholder={`Montant reçu (min: ${fmt(bal)} Ar)`}
                           value={receivedAmount}
                           onChange={e => {
-                            let v = Number(e.target.value);
-                            if (isNaN(v)) v = 0;
+                            const v = Math.max(0, Number(e.target.value));
                             setReceivedAmount(v || "");
                           }}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && receivedAmount && Number(receivedAmount) >= bal) {
+                              handlePay();
+                            }
+                          }}
+                          autoFocus
                         />
                       </div>
                       <div className="flex flex-col justify-end">
-                        {changeToGive > 0 ? (
-                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                            <div className="text-xs text-blue-600">Monnaie à rendre</div>
-                            <div className="font-bold text-blue-700 text-lg">{fmt(changeToGive)} Ar</div>
-                          </div>
-                        ) : (
-                          <div className="bg-muted/30 rounded p-2 text-center">
-                            <div className="text-xs text-muted-foreground">Monnaie</div>
-                            <div className="font-medium text-muted-foreground">0 Ar</div>
-                          </div>
-                        )}
+                        {(() => {
+                          const rcv = receivedAmount !== "" ? Number(receivedAmount) : 0;
+                          if (rcv >= bal) {
+                            const change = rcv - bal;
+                            return (
+                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
+                                <div className="text-xs text-blue-600">Monnaie à rendre</div>
+                                <div className="font-bold text-blue-700 text-lg">{fmt(change)} Ar</div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="bg-muted/30 rounded p-2 text-center">
+                              <div className="text-xs text-muted-foreground">Monnaie</div>
+                              <div className="font-medium text-muted-foreground">0 Ar</div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
-                    {payAmount !== "" && bal > 0 && Number(payAmount) > bal && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
-                        Le montant du paiement ({fmt(Number(payAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
-                        Un crédit de {fmt(Number(payAmount) - bal)} Ar sera enregistré.
+                    {/* Message si montant reçu insuffisant */}
+                    {receivedAmount !== "" && Number(receivedAmount) < bal && (
+                      <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-1.5">
+                        ❌ Le montant reçu ({fmt(Number(receivedAmount))} Ar) est inférieur au montant dû ({fmt(bal)} Ar)
                       </div>
                     )}
 
-                    {payMethod === "card" && payAmount !== "" && Number(payAmount) > 0 && (
+                    {/* Message de crédit si montant reçu > solde */}
+                    {receivedAmount !== "" && Number(receivedAmount) > bal && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+                        ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
+                        Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
+                      </div>
+                    )}
+
+                    {/* Informations carte bancaire */}
+                    {payMethod === "card" && receivedAmount !== "" && Number(receivedAmount) > 0 && Number(receivedAmount) >= bal && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                         <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
                           <CreditCard className="h-3.5 w-3.5 shrink-0" />
@@ -1762,19 +1781,19 @@ export default function BarPOS() {
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Montant consommé collecté</span>
-                            <span className="font-semibold text-green-700">{fmt(Number(payAmount))} Ar</span>
+                            <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
-                            <span className="text-red-600 font-semibold">+{fmt(nextCardFeePreview)} Ar</span>
+                            <span className="text-red-600 font-semibold">+{fmt(Math.round(Number(receivedAmount) * 0.05))} Ar</span>
                           </div>
                           <div className="flex justify-between border-t border-blue-200 pt-1">
                             <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
-                            <span className="text-blue-800 font-bold">{fmt(Number(payAmount) + nextCardFeePreview)} Ar</span>
+                            <span className="text-blue-800 font-bold">{fmt(Math.round(Number(receivedAmount) * 1.05))} Ar</span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground italic">
-                          L'établissement collecte {fmt(Number(payAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                          L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(Math.round(Number(receivedAmount) * 0.05))} Ar de frais sont retenus par la banque.
                         </p>
                       </div>
                     )}
@@ -1783,11 +1802,17 @@ export default function BarPOS() {
                       className="w-full"
                       onClick={handlePay}
                       disabled={
-                        payOrder.isPending || !payAmount || Number(payAmount) <= 0 ||
-                        (receivedAmount !== "" && Number(receivedAmount) < Number(payAmount))
+                        payOrder.isPending ||
+                        !receivedAmount ||
+                        Number(receivedAmount) <= 0 ||
+                        Number(receivedAmount) < bal
                       }
                     >
-                      {payOrder.isPending ? "…" : `Collecter ${payAmount ? fmt(Number(payAmount)) + " Ar" : ""}`}
+                      {payOrder.isPending ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Traitement...</>
+                      ) : (
+                        `Collecter ${receivedAmount ? fmt(Number(receivedAmount)) + " Ar" : ""}`
+                      )}
                     </Button>
                   </div>
                 )}
