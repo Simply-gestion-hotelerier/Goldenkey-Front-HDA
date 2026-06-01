@@ -9,10 +9,11 @@ import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FileText, Printer, Search, CreditCard, AlertCircle,
   CheckCircle2, XCircle, ShoppingBag, ChevronDown, ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -102,7 +103,12 @@ interface GuestFolio {
 export default function GuestInvoice() {
   const { t } = useTranslation();
   const [search, setSearch]   = useState("");
-  const [folioId, setFolioId] = useState<number | null>(null);
+  const [folioId, setFolioId] = useState<number | null>(() => {
+    // Pré-charger le folio si ?folio=XX est dans l'URL (lien depuis HotelPOS)
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("folio");
+    return p ? Number(p) : null;
+  });
   const [currency, setCurrency] = useState<"MGA" | "EUR" | "USD">("MGA");
   const [rates]               = useState({ EUR: 5000, USD: 4500 });
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
@@ -256,7 +262,7 @@ export default function GuestInvoice() {
         <td style="text-align:right">—</td>
         <td style="text-align:right">${o.lines.reduce((s,l)=>s+l.qty,0)}</td>
         <td style="text-align:right;font-weight:600">${fmt(convert(o.totalAmount))} ${sym}</td>
-      <tr>${sub}`;
+      </tr>${sub}`;
     }).join("");
 
     const html = `<html><head><meta charset="utf-8"/>
@@ -415,6 +421,15 @@ export default function GuestInvoice() {
                       {folio.guestCompany && <p className="text-sm text-muted-foreground">{folio.guestCompany}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        onClick={() => window.open(`/hotel-pos?room=${encodeURIComponent(folio.roomNumber)}`, "_blank")}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                        HotelPOS
+                      </Button>
                       <select
                         className="text-sm border rounded px-2 py-1.5 bg-background"
                         value={currency}

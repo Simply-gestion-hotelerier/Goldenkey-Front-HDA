@@ -604,8 +604,36 @@ export default function HotelPOS() {
     ...qo,
   });
 
+  // Réservations actives (checked_in) pour afficher le nom du client sur chaque chambre
+  const { data: activeReservations = [] } = useQuery({
+    queryKey: ["hotel", "reservations", "checked_in"],
+    queryFn: () => api.get<any[]>("/hotelrooms/reservations"),
+    ...qo,
+  });
+
+  // Map roomNumber → { guestName, reservationId, folioId } pour les chambres occupées
+  const roomGuestMap = useMemo(() => {
+    const map = new Map<string, { guestName: string; reservationId: number; folioId?: number }>();
+    (activeReservations as any[])
+      .filter((r: any) => r.status === "checked_in")
+      .forEach((r: any) => {
+        map.set(r.room.number, {
+          guestName: r.guest.fullName,
+          reservationId: r.id,
+          folioId: r.folio?.id,
+        });
+      });
+    return map;
+  }, [activeReservations]);
+
   useEffect(() => {
-    if ((tables as any[]).length && !table) setTable((tables as any[])[0].code);
+    if ((tables as any[]).length && !table) {
+      // Pré-sélectionner depuis ?room=XX (lien depuis GuestInvoice)
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get("room");
+      const found = roomParam && (tables as any[]).find((t: any) => t.code === roomParam);
+      setTable(found ? roomParam! : (tables as any[])[0].code);
+    }
   }, [tables]);
 
   const { data: dishes = [], isLoading: dishesLoading, error: dishesError } = useQuery({
@@ -1027,16 +1055,28 @@ export default function HotelPOS() {
                     {(tables as any[]).map((t: any) => {
                       const code = t.code ?? String(t.id);
                       const tOrders = getTableOrders(code);
+                      const guest = roomGuestMap.get(code);
                       return (
                         <div key={code} className="flex items-center gap-1">
-                          <Button variant={table === code ? "default" : "outline"} onClick={() => setTable(code)} className="relative">
-                            {code}
-                            {tOrders.length > 0 && (
-                              <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                                {tOrders.length}
-                              </Badge>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Button
+                              variant={table === code ? "default" : "outline"}
+                              onClick={() => setTable(code)}
+                              className={`relative ${guest ? "border-blue-400 bg-blue-50 hover:bg-blue-100 text-blue-900" : ""} ${table === code && guest ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : ""}`}
+                            >
+                              {code}
+                              {tOrders.length > 0 && (
+                                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                                  {tOrders.length}
+                                </Badge>
+                              )}
+                            </Button>
+                            {guest && (
+                              <span className="text-xs text-blue-700 font-medium max-w-[90px] truncate text-center leading-tight">
+                                {guest.guestName.split(" ")[0]}
+                              </span>
                             )}
-                          </Button>
+                          </div>
                           <Button size="icon" variant="ghost" onClick={() => setEditingTable(t)}>
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -1161,7 +1201,34 @@ export default function HotelPOS() {
                     <div className="text-sm text-muted-foreground text-center py-6">Sélectionnez une table/chambre</div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">Table/Chambre <span className="font-semibold text-foreground">{table}</span></p>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="text-sm text-muted-foreground">
+                          Table/Chambre <span className="font-semibold text-foreground">{table}</span>
+                        </p>
+                        {(() => {
+                          const guest = roomGuestMap.get(table);
+                          if (!guest) return null;
+                          return (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                                <HotelIcon className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                                <span className="text-xs font-semibold text-blue-800">{guest.guestName}</span>
+                              </div>
+                              {guest.folioId && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                                  onClick={() => window.open(`/guest-invoice?folio=${guest.folioId}`, "_blank")}
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  Voir folio
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                       {tableOrders.length === 0 ? (
                         <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg">Aucune commande active</div>
                       ) : (
