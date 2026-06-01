@@ -135,7 +135,7 @@ export default function Cash() {
       hotel: t('nav.hotel'),
       restaurant: t('nav.restaurant'),
       pub: 'Pub',
-      spa: t('nav.spa')
+     
     };
     return labels[dept as keyof typeof labels] || dept;
   };
@@ -159,7 +159,7 @@ export default function Cash() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {(['hotel', 'restaurant', 'spa'] as const).map(d => (
+                {(['hotel', 'restaurant', 'bar','casino'] as const).map(d => (
                   <Button 
                     key={d} 
                     variant={dept === d ? 'default' : 'outline'} 
