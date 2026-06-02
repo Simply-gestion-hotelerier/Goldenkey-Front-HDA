@@ -1,6 +1,7 @@
 // ============================================================
-// BAR POS - VERSION FRANÇAISE COMPLÈTE
-// Tous les textes sont en français directement dans le composant
+// CASINO POS - VERSION FRANÇAISE COMPLÈTE AVEC PAIEMENTS PARTIELS
+// Numéro de facture fixe par commande, change à la clôture
+// Paiements partiels acceptés (montant reçu peut être < solde)
 // ============================================================
 
 import { Header } from "@/components/layout/header";
@@ -17,7 +18,7 @@ import {
   Clock, RefreshCw, MessageSquare, Printer, FileText,
   CheckCircle2, XCircle, ChevronDown, ChevronRight,
   ChevronLeft, Info, Hash, Tag, Percent, X, CreditCard,
-  Users, Dices, Plus, CheckCheck,
+  Users, Dices, Plus, Minus, CheckCheck,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,46 +28,64 @@ import { WaiterAssignment } from "./WaiterAssignment";
 
 // ── Helpers numbers ────────────────────────────────────────────────────────────
 
-const generateInvoiceNumber = (_orderId?: number) => {
+// Génère un numéro de facture unique avec lettres
+const generateNewInvoiceNumber = () => {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let code5 = "";
   for (let i = 0; i < 5; i++) code5 += letters.charAt(Math.floor(Math.random() * letters.length));
-  return `INV-${code5}`;
+  const timestamp = Date.now().toString().slice(-4);
+  return `INV-${code5}${timestamp}`;
+};
+
+// Récupère ou génère un numéro de facture pour une commande
+const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoice?: string) => {
+  if (status === "closed" || status === "cancelled") {
+    return existingInvoice || generateNewInvoiceNumber();
+  }
+
+  const key = `invoice_casino_${orderId}`;
+  const stored = localStorage.getItem(key);
+
+  if (stored) return stored;
+  if (existingInvoice) return existingInvoice;
+
+  const newInvoice = generateNewInvoiceNumber();
+  localStorage.setItem(key, newInvoice);
+  return newInvoice;
+};
+
+// Nettoie le cache quand une commande est clôturée
+const clearInvoiceCache = (orderId: number) => {
+  const key = `invoice_casino_${orderId}`;
+  localStorage.removeItem(key);
 };
 
 const formatOrderNumber = (orderId: number, createdAt?: string) => {
-  if (!createdAt) return `ORD-${String(orderId).padStart(6, "0")}`;
+  if (!createdAt) return `CAS-${String(orderId).padStart(6, "0")}`;
   const date = new Date(createdAt);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `ORD-${year}${month}${day}-${String(orderId).padStart(4, "0")}`;
+  return `CAS-${year}${month}${day}-${String(orderId).padStart(4, "0")}`;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { key: "beverage", label: "Boissons & Cocktails" },
+  { key: "slot", label: "Machines à sous" },
+  { key: "table", label: "Jeux de table" },
+  { key: "beverage", label: "Boissons" },
   { key: "snack", label: "Snacks" },
-  { key: "appetizer", label: "Apéritifs" },
-  { key: "dessert", label: "Desserts" },
-  { key: "side_dish", label: "Accompagnements" },
+  { key: "vip", label: "Service VIP" },
 ];
 
 const CATEGORY_ORDER = [
-  "beverage", "snack", "appetizer", "dessert", "side_dish",
+  "slot", "table", "beverage", "snack", "vip",
 ];
 
 const getIndex = (cat?: string) => {
   const i = CATEGORY_ORDER.indexOf(cat || "");
   return i === -1 ? 999 : i;
-};
-
-const DEPT_COLORS: Record<string, string> = {
-  hotel: "bg-blue-100 text-blue-800",
-  restaurant: "bg-orange-100 text-orange-800",
-  pub: "bg-purple-100 text-purple-800",
-  spa: "bg-teal-100 text-teal-800",
 };
 
 const FIRE_STYLE: Record<string, string> = {
@@ -93,8 +112,8 @@ function FireBadge({ status }: { status: string }) {
 
 // ── Restaurant info ───────────────────────────────────────────────────────────
 
-const RESTAURANT = {
-  name: "Hôtel de l'Avenue — Casino",
+const CASINO = {
+  name: "Casino de l'Avenue",
   address: "Antsirabe, Madagascar",
   phone: "+261 038 33 188 31",
 };
@@ -122,6 +141,7 @@ const METHOD_LBL: Record<string, string> = {
   mobile: "Mobile Money",
   voucher: "Ticket restaurant",
   bank: "Virement",
+  chips: "Jetons",
 };
 
 function operatorLabel(p: any): string | null {
@@ -172,18 +192,18 @@ function print80mm(tableCode: string, order: any) {
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
+  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
 
   const lines: string[] = [
-    ctr(RESTAURANT.name, W),
-    ctr(RESTAURANT.address, W),
-    ctr(RESTAURANT.phone, W),
+    ctr(CASINO.name, W),
+    ctr(CASINO.address, W),
+    ctr(CASINO.phone, W),
     sep,
     ctr("** COMMANDE / FACTURE **", W),
     sep,
     padL("N° commande :", orderNumber, W),
     padL("N° facture  :", invoiceNumber, W),
-    padL("Table       :", tableCode, W),
+    padL("Table/salle :", tableCode, W),
     padL("Commande    :", `#${order.id}`, W),
     padL("Date        :", new Date().toLocaleDateString("fr-FR"), W),
     padL("Heure       :", new Date().toLocaleTimeString("fr-FR"), W),
@@ -230,7 +250,16 @@ function print80mm(tableCode: string, order: any) {
     lines.push(dsh);
   }
 
-  lines.push(padL(bal > 0 ? "RESTANT" : "PAYÉ", fmt(bal) + " Ar", W));
+  // Afficher le reste à payer ou le crédit client
+  if (bal > 0) {
+    lines.push(padL("RESTE À PAYER", fmt(bal) + " Ar", W));
+  } else if (paid > total) {
+    const credit = paid - total;
+    lines.push(padL("CRÉDIT CLIENT", fmt(credit) + " Ar", W));
+    lines.push(padL("(À déduire prochaine commande)", "", W));
+  } else {
+    lines.push(padL("PAYÉ", "0 Ar", W));
+  }
   lines.push(sep);
 
   if (cardAmount > 0) {
@@ -247,7 +276,7 @@ function print80mm(tableCode: string, order: any) {
 
   lines.push("");
   lines.push(ctr("Merci de votre visite !", W));
-  lines.push(ctr("Hôtel de l'Avenue", W));
+  lines.push(ctr("Casino de l'Avenue", W));
   lines.push(ctr(new Date().toLocaleString("fr-FR"), W));
   lines.push("");
 
@@ -278,12 +307,12 @@ function printA4(tableCode: string, order: any) {
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
+  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
 
   const rows = (order.lines ?? [])
     .map(
       (l: any) => `
-    <tr>
+    <table>
        <td style="padding:8px;">
          <strong>${l.itemName ?? ""}</strong>
          ${l.comment ? `<br/><small style="color:#6b7280;font-style:italic">↳ ${l.comment}</small>` : ""}
@@ -315,7 +344,7 @@ function printA4(tableCode: string, order: any) {
         ${op ? `<br/><small style="color:#7c3aed;font-weight:600">👤 Opérateur : ${op}</small>` : ""}
         </td>
       <td style="text-align:right;padding:8px;color:#059669;font-weight:600">-${fmt(p.amount)} Ar</td>
-     </table>`;
+     </tr>`
     })
     .join("");
 
@@ -325,7 +354,7 @@ function printA4(tableCode: string, order: any) {
           <td colspan="3" style="text-align:right;padding:8px;color:#b45309">
             Remise${order.discountReason ? ` — ${order.discountReason}` : ""}
             ${order.discountType === "percent" ? ` (${Math.round((discount / subtotal) * 100)}%)` : ""}
-           </td>
+            </td>
           <td style="text-align:right;padding:8px;color:#b45309;font-weight:700">-${fmt(discount)} Ar</td>
         </tr>`
       : "";
@@ -344,12 +373,12 @@ function printA4(tableCode: string, order: any) {
           <tr style="border-bottom:1px solid #bfdbfe;">
             <td style="padding:6px 0;color:#dc2626;">Frais bancaires (5%) <em style="font-weight:400;color:#6b7280;">— retenus par la banque</em></td>
             <td style="text-align:right;padding:6px 0;color:#dc2626;font-weight:600;">+${fmt(bankFees)} Ar</td>
-          </tr>
+           </tr>
           <tr style="background:#dbeafe;">
             <td style="padding:8px;font-weight:700;color:#1e40af;border-radius:4px 0 0 4px;">TOTAL DÉBITÉ DE VOTRE CARTE</td>
             <td style="text-align:right;padding:8px;font-weight:700;color:#1e40af;border-radius:0 4px 4px 0;">${fmt(totalDebited)} Ar</td>
-          </tr>
-        </table>
+           </tr>
+         </table>
         <p style="margin-top:8px;font-size:10px;color:#6b7280;font-style:italic;">
           * L'établissement ne collecte que votre montant consommé (${fmt(cardAmount)} Ar). 
           Les ${fmt(bankFees)} Ar de frais sont directement retenus par votre banque.
@@ -382,15 +411,15 @@ function printA4(tableCode: string, order: any) {
       tfoot td { font-weight: 700; border-top: 2px solid #0f2744; padding: 10px; }
       tfoot td:not(:first-child) { text-align: right; }
       .discount-banner { background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;color:#92400e;display:flex;justify-content:space-between; }
-      .balance { padding: 16px; border-radius: 8px; text-align: right; font-weight: 700; font-size: 14px; margin: 16px 0; }
+      .balance { padding: 16px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 14px; margin: 16px 0; }
       .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; text-align: center; line-height: 1.8; }
     </style>
     </head><body>
 
     <div class="header">
       <div>
-        <div class="resto-name">${RESTAURANT.name}</div>
-        <div class="resto-details">${RESTAURANT.address}<br/>${RESTAURANT.phone} · ${RESTAURANT.email}</div>
+        <div class="resto-name">${CASINO.name}</div>
+        <div class="resto-details">${CASINO.address}<br/>${CASINO.phone}</div>
       </div>
       <div class="invoice-info">
         <div style="font-size:18px;font-weight:700;color:#0f2744;">FACTURE</div>
@@ -404,11 +433,11 @@ function printA4(tableCode: string, order: any) {
     </div>
 
     <div class="info-card">
-      <div class="info-item"><strong>Table :</strong> ${tableCode}</div>
+      <div class="info-item"><strong>Table/Salle :</strong> ${tableCode}</div>
       <div class="info-item"><strong>Date :</strong> ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
       <div class="info-item"><strong>Heure :</strong> ${new Date().toLocaleTimeString("fr-FR")}</div>
       <div class="info-item"><strong>Service :</strong> ${order.serviceType ?? "Sur place"}</div>
-      <div class="info-item"><strong>Serveur :</strong> ${operatorLabel(order.payments?.[0]) ?? "—"}</div>
+      <div class="info-item"><strong>Caissier :</strong> ${operatorLabel(order.payments?.[0]) ?? "—"}</div>
     </div>
 
     ${discount > 0
@@ -450,14 +479,19 @@ function printA4(tableCode: string, order: any) {
       </tfoot>
     </table>
 
-    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : "#065f46"}">
-      ${balance > 0 ? `Montant dû : ${fmt(balance)} Ar` : "✓ Solde payé"}
+    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"}">
+      ${balance > 0 
+        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+        : paid > total 
+          ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar (à déduire sur prochaine commande)`
+          : "✓ SOLDE PAYÉ"
+      }
     </div>
 
     ${cardFeesSummaryBlock}
 
     <div class="footer">
-      ${RESTAURANT.name}<br/>
+      ${CASINO.name}<br/>
       Imprimé le ${new Date().toLocaleString("fr-FR")} — Document non valide sans signature
     </div>
 
@@ -469,9 +503,7 @@ function printA4(tableCode: string, order: any) {
 }
 
 // ── CardFeesInfoBanner ────────────────────────────────────────────────────────
-// BarPOS — no folio chambre feature
 
-// CardFeesInfoBanner
 function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
   if (cardAmount <= 0) return null;
   const fees = Math.round(cardAmount * CARD_FEE_RATE);
@@ -501,7 +533,7 @@ function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
         </div>
       </div>
       <p className="text-xs text-muted-foreground italic">
-        L'établissement ne collecte que {fmt(cardAmount)} Ar. Les {fmt(fees)} Ar de frais sont directement retenus par votre banque.
+        L'établissement ne collecte que ${fmt(cardAmount)} Ar. Les ${fmt(fees)} Ar de frais sont directement retenus par votre banque.
       </p>
     </div>
   );
@@ -529,9 +561,8 @@ export default function CasinoPOS() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
-  const [payAmount, setPayAmount] = useState<number | "">("");
   const [receivedAmount, setReceivedAmount] = useState<number | "">("");
-  const [payMethod, setPayMethod] = useState<"cash" | "card" | "mobile" | "bank">("cash");
+  const [payMethod, setPayMethod] = useState<"cash" | "card" | "mobile" | "bank" | "chips">("cash");
 
   const [discountInput, setDiscountInput] = useState<number | "">("");
   const [discountType, setDiscountType] = useState<"fixed" | "percent">("fixed");
@@ -539,14 +570,6 @@ export default function CasinoPOS() {
   const [showDiscountForm, setShowDiscountForm] = useState(false);
 
   const qo = { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 };
-  const today = new Date().toISOString().slice(0, 10);
-
-  const changeToGive = useMemo(() => {
-    const a = Number(payAmount);
-    const r = Number(receivedAmount);
-    if (!a || !r || r < a) return 0;
-    return r - a;
-  }, [payAmount, receivedAmount]);
 
   const discountPreviewAr = useMemo(() => {
     if (!selectedOrder || discountInput === "") return 0;
@@ -562,9 +585,9 @@ export default function CasinoPOS() {
   }, [selectedOrder]);
 
   const nextCardFeePreview = useMemo(() => {
-    if (payMethod !== "card" || !payAmount || Number(payAmount) <= 0) return 0;
-    return Math.round(Number(payAmount) * CARD_FEE_RATE);
-  }, [payMethod, payAmount]);
+    if (payMethod !== "card" || !receivedAmount || Number(receivedAmount) <= 0) return 0;
+    return Math.round(Number(receivedAmount) * CARD_FEE_RATE);
+  }, [payMethod, receivedAmount]);
 
   // Queries
   const { data: tables = [] } = useQuery({
@@ -588,18 +611,20 @@ export default function CasinoPOS() {
 
   const { data: allOrders = [], refetch: refetchOrders } = useQuery({
     queryKey: ["orders", "casino"],
-    queryFn: () => api.get<any[]>("/casino/orders?status=open"),
+    queryFn: async () => {
+      const orders = await api.get<any[]>("/casino/orders");
+      return orders;
+    },
     ...qo,
   });
 
-  // Derived
   const tableOrders = useMemo(
-    () => (allOrders as any[]).filter((o: any) => o.table?.code === table),
+    () => (allOrders as any[]).filter((o: any) => o.table?.code === table && o.status !== "closed" && o.status !== "cancelled"),
     [allOrders, table]
   );
 
   const getTableOrders = (code: string) =>
-    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status === "open");
+    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status !== "closed" && o.status !== "cancelled");
 
   const filteredDishes = useMemo(() => {
     if (!Array.isArray(dishes)) return [];
@@ -645,10 +670,18 @@ export default function CasinoPOS() {
 
   const createOrder = useMutation({
     mutationFn: async (tableCode: string) => {
-      const invoiceNumber = generateInvoiceNumber();
+      const invoiceNumber = generateNewInvoiceNumber();
       return api.post("/casino/orders", { dept: "casino", tableCode, invoiceNumber });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders", "casino"] }),
+    onSuccess: (response) => {
+      if (response?.id) {
+        const key = `invoice_casino_${response.id}`;
+        if (response.invoiceNumber) {
+          localStorage.setItem(key, response.invoiceNumber);
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["orders", "casino"] });
+    },
   });
 
   const addLine = useMutation({
@@ -678,12 +711,38 @@ export default function CasinoPOS() {
   });
 
   const incrementLine = useMutation({
-    mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) =>
-      api.patch(`/casino/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 }),
+    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
+      const response = await api.patch(`/casino/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 });
+      return response.data;
+    },
     onSuccess: async (_, { orderId }) => {
-      qc.invalidateQueries({ queryKey: ["orders", "casino"] });
+      await qc.invalidateQueries({ queryKey: ["orders", "casino"] });
       await refetchOrders();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        await refreshSelectedOrder(orderId);
+      }
       toast({ title: "Quantité augmentée" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+  });
+
+  const decrementLine = useMutation({
+    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
+      if (currentQty <= 1) {
+        await api.del(`/casino/orders/${orderId}/lines/${lineId}`);
+        return { deleted: true };
+      }
+      const response = await api.patch(`/casino/orders/${orderId}/lines/${lineId}`, { qty: currentQty - 1 });
+      return { deleted: false, data: response.data };
+    },
+    onSuccess: async (result, { orderId }) => {
+      await qc.invalidateQueries({ queryKey: ["orders", "casino"] });
+      await refetchOrders();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        await refreshSelectedOrder(orderId);
+      }
+      toast({ title: result?.deleted ? "Article supprimé" : "Quantité diminuée" });
     },
     onError: (e: any) =>
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -697,6 +756,7 @@ export default function CasinoPOS() {
   const closeOrder = useMutation({
     mutationFn: async (id: number) => api.post(`/casino/orders/${id}/close`),
     onSuccess: async (_, id) => {
+      clearInvoiceCache(id);
       qc.invalidateQueries({ queryKey: ["orders", "casino"] });
       await refreshSelectedOrder(id);
       toast({ title: "Commande clôturée" });
@@ -721,7 +781,6 @@ export default function CasinoPOS() {
         title: "Paiement enregistré",
         description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
       });
-      setPayAmount("");
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
       qc.invalidateQueries({ queryKey: ["orders", "casino"] });
@@ -782,7 +841,6 @@ export default function CasinoPOS() {
     try {
       const order = await api.get<any>(`/casino/orders/${orderId}`);
       if (!order.orderNumber) order.orderNumber = formatOrderNumber(order.id, order.createdAt);
-      if (!order.invoiceNumber) order.invoiceNumber = generateInvoiceNumber(order.id);
       setSelectedOrder(order);
     } catch {
       toast({ title: "Impossible de charger la commande", variant: "destructive" });
@@ -794,7 +852,6 @@ export default function CasinoPOS() {
   const openDetails = async (order: any) => {
     setDetailsOpen(true);
     setSelectedOrder(order);
-    setPayAmount("");
     setReceivedAmount("");
     setDiscountInput("");
     setDiscountReason("");
@@ -803,7 +860,7 @@ export default function CasinoPOS() {
   };
 
   const createOrderIfNeeded = async (tc: string): Promise<number> => {
-    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status === "open");
+    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status !== "closed" && o.status !== "cancelled");
     if (ex) return ex.id;
     const response = await createOrder.mutateAsync(tc);
     return (response as any).id;
@@ -846,8 +903,16 @@ export default function CasinoPOS() {
       open: "bg-yellow-50 text-yellow-700 border-yellow-200",
       closed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
+      pending: "bg-blue-50 text-blue-700 border-blue-200",
+      preparing: "bg-purple-50 text-purple-700 border-purple-200",
     };
-    const labels: Record<string, string> = { open: "Active", closed: "Fermée", cancelled: "Annulée" };
+    const labels: Record<string, string> = {
+      open: "Active",
+      closed: "Fermée",
+      cancelled: "Annulée",
+      pending: "En attente",
+      preparing: "Préparation"
+    };
     return <Badge variant="outline" className={styles[s] ?? styles.open}>{labels[s] ?? s}</Badge>;
   };
 
@@ -857,25 +922,25 @@ export default function CasinoPOS() {
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
+  // CORRECTION: handlePay modifié pour permettre les paiements partiels
+  // On peut collecter n'importe quel montant, même inférieur au solde
   const handlePay = () => {
-    const amt = Number(payAmount);
-    const rcv = Number(receivedAmount);
-    if (!amt || amt <= 0) {
-      toast({ title: "Montant de paiement invalide", variant: "destructive" });
+    const amountToCollect = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
+
+    if (!amountToCollect || amountToCollect <= 0) {
+      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
       return;
     }
-    if (receivedAmount !== "" && rcv < amt) {
-      toast({
-        title: `Le montant reçu (${fmt(rcv)} Ar) doit être supérieur ou égal au montant dû (${fmt(amt)} Ar)`,
-        variant: "destructive",
-      });
-      return;
-    }
+
+    // Pas de vérification si le montant est inférieur au solde
+    // On collecte exactement ce que le client donne
+    // La facture gérera l'affichage du reste à payer ou du crédit
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: amt,
+      amount: amountToCollect,
       method: payMethod,
-      receivedAmount: receivedAmount !== "" ? rcv : undefined,
+      receivedAmount: amountToCollect,
     });
   };
 
@@ -917,9 +982,9 @@ export default function CasinoPOS() {
                     : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
-                  {tab === "pos" && <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
+                  {tab === "pos" && <Dices className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
                   {tab === "waiters" && <Users className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
-                  {tab === "pos" ? "Bar" : "Serveurs"}
+                  {tab === "pos" ? "Casino" : "Croupiers"}
                 </button>
               ))}
             </div>
@@ -931,12 +996,12 @@ export default function CasinoPOS() {
 
               {/* Tables */}
               <Card>
-                <CardHeader><CardTitle>Tables</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Tables / Salles</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex gap-2">
                     <input
                       className="flex-1 px-3 py-2 rounded border bg-background text-sm"
-                      placeholder="Code (ex: R1)"
+                      placeholder="Code (ex: T1, SLOT1)"
                       value={newTableCode}
                       onChange={e => setNewTableCode(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && newTableCode.trim() && createTable.mutate(newTableCode.trim())}
@@ -996,7 +1061,7 @@ export default function CasinoPOS() {
 
               {/* Menu */}
               <Card>
-                <CardHeader><CardTitle>Carte</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Prestations</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="relative">
                     <Input placeholder="Rechercher…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
@@ -1008,9 +1073,9 @@ export default function CasinoPOS() {
                         const count = (dishes as any[]).filter((d: any) => d.category === cat.key).length;
                         return (
                           <Button key={cat.key} variant="outline" className="h-auto p-4 flex flex-col items-center gap-1 w-full" onClick={() => setSelectedCategory(cat.key)}>
-                            <Utensils className="h-5 w-5" />
+                            <Dices className="h-5 w-5" />
                             <span className="font-medium text-sm text-center">{cat.label}</span>
-                            <span className="text-xs text-muted-foreground">{count} plat{count > 1 ? "s" : ""}</span>
+                            <span className="text-xs text-muted-foreground">{count} article{count > 1 ? "s" : ""}</span>
                           </Button>
                         );
                       })}
@@ -1025,7 +1090,7 @@ export default function CasinoPOS() {
                       <div className="grid grid-cols-2 gap-2">
                         {filteredDishes.filter((d: any) => d.category === selectedCategory).length === 0 && !dishesLoading ? (
                           <div className="col-span-2 text-center text-sm text-muted-foreground py-4">
-                            {searchTerm ? "Aucun plat trouvé" : "Aucun plat dans cette catégorie"}
+                            {searchTerm ? "Aucun article trouvé" : "Aucun article dans cette catégorie"}
                           </div>
                         ) : (
                           filteredDishes.filter((d: any) => d.category === selectedCategory).map((dish: any) => (
@@ -1036,7 +1101,7 @@ export default function CasinoPOS() {
                                 onClick={() => addItem({ id: dish.id, name: dish.name, price: dish.price })}
                                 disabled={addingItem === dish.id || !hasScope("orders:write") || !table || !!dishesError}
                               >
-                                <Utensils className="h-5 w-5 mb-1" />
+                                <Dices className="h-5 w-5 mb-1" />
                                 <span className="font-medium text-sm text-center w-full truncate leading-tight line-clamp-2 break-words">{dish.name}</span>
                                 <span className="text-xs text-muted-foreground">{fmt(dish.price)} Ar</span>
                                 {addingItem === dish.id && <div className="text-xs text-blue-600 mt-1">Ajout…</div>}
@@ -1081,16 +1146,16 @@ export default function CasinoPOS() {
                 </CardHeader>
                 <CardContent>
                   {!table ? (
-                    <div className="text-sm text-muted-foreground text-center py-6">Sélectionnez une table</div>
+                    <div className="text-sm text-muted-foreground text-center py-6">Sélectionnez une table/salle</div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">Table <span className="font-semibold text-foreground">{table}</span></p>
+                      <p className="text-sm text-muted-foreground">Table/Salle <span className="font-semibold text-foreground">{table}</span></p>
                       {tableOrders.length === 0 ? (
                         <div className="text-sm text-muted-foreground p-6 text-center border rounded-lg">Aucune commande active</div>
                       ) : (
                         tableOrders.map((order: any) => {
                           const orderNum = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-                          const invoiceNum = order.invoiceNumber || generateInvoiceNumber(order.id);
+                          const invoiceNum = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
                           const sub = orderSubtotal(order);
                           const disc = orderDiscount(order);
                           const tot = orderTotal(order);
@@ -1107,8 +1172,8 @@ export default function CasinoPOS() {
                               </div>
                               {order.table?.assignedWaiter && (
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                  <User className="h-3 w-3" />
-                                  Serveur: {order.table.assignedWaiter.name}
+                                  <Users className="h-3 w-3" />
+                                  Croupier: {order.table.assignedWaiter.name}
                                 </div>
                               )}
                               <div className="flex items-center justify-between bg-muted/20 rounded px-3 py-1.5 text-xs">
@@ -1145,14 +1210,38 @@ export default function CasinoPOS() {
                                               <Button
                                                 size="sm"
                                                 variant="outline"
+                                                className="h-6 w-6 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                                                title="Enlever 1 unité"
+                                                disabled={decrementLine.isPending}
+                                                onClick={async () => {
+                                                  try {
+                                                    await decrementLine.mutateAsync({
+                                                      orderId: order.id,
+                                                      lineId: line.id,
+                                                      currentQty: line.qty,
+                                                    });
+                                                    await refetchOrders();
+                                                  } catch (error) {
+                                                    console.error("Erreur:", error);
+                                                  }
+                                                }}
+                                              >
+                                                <Minus className="h-3.5 w-3.5" />
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
                                                 className="h-6 w-6 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
                                                 title="Ajouter 1 unité"
                                                 disabled={incrementLine.isPending}
-                                                onClick={() => incrementLine.mutate({
-                                                  orderId: order.id,
-                                                  lineId: line.id,
-                                                  currentQty: line.qty,
-                                                })}
+                                                onClick={async () => {
+                                                  await incrementLine.mutateAsync({
+                                                    orderId: order.id,
+                                                    lineId: line.id,
+                                                    currentQty: line.qty,
+                                                  });
+                                                  await refetchOrders();
+                                                }}
                                               >
                                                 <Plus className="h-3.5 w-3.5" />
                                               </Button>
@@ -1208,7 +1297,7 @@ export default function CasinoPOS() {
                               </div>
                               {!allDelivered(order.lines ?? []) && (order.lines ?? []).length > 0 && (
                                 <div className="text-xs text-orange-600 bg-orange-50 rounded p-2">
-                                  Tous les plats n'ont pas encore été livrés
+                                  Tous les articles n'ont pas encore été livrés
                                 </div>
                               )}
                             </div>
@@ -1227,7 +1316,6 @@ export default function CasinoPOS() {
               tables={tables as any[]}
               onAssignmentChange={() => {
                 refetchOrders();
-                // Rafraîchir d'autres données si nécessaire
               }}
             />
           )}
@@ -1295,7 +1383,7 @@ export default function CasinoPOS() {
             </div>
             {detailDialog?.ingredients && (
               <div>
-                <p className="text-sm font-medium mb-2">Ingrédients</p>
+                <p className="text-sm font-medium mb-2">Détails</p>
                 <div className="flex flex-wrap gap-2">
                   {(Array.isArray(detailDialog.ingredients) ? detailDialog.ingredients : Object.values(detailDialog.ingredients)).map((ing: any, i: number) => (
                     <Badge key={i} variant="outline" className="text-xs flex items-center gap-1">
@@ -1325,12 +1413,14 @@ export default function CasinoPOS() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Details / Payment / Discount */}
+      {/* Dialog Details / Payment / Discount - AVEC PAIEMENTS PARTIELS */}
       <Dialog open={detailsOpen} onOpenChange={open => { if (!open) { setDetailsOpen(false); setSelectedOrder(null); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Commande {selectedOrder?.orderNumber || `#${selectedOrder?.id}`}</DialogTitle>
-            <DialogDescription>Table {selectedOrder?.table?.code ?? "—"} · {selectedOrder?.status === "open" ? "Active" : "Fermée"}</DialogDescription>
+            <DialogDescription>
+              Table/Salle {selectedOrder?.table?.code ?? "—"} · Statut: {statusBadge(selectedOrder?.status)}
+            </DialogDescription>
           </DialogHeader>
 
           {loadingOrder && <div className="py-8 text-center text-muted-foreground text-sm">Chargement…</div>}
@@ -1342,7 +1432,7 @@ export default function CasinoPOS() {
             const paid = orderPaid(selectedOrder);
             const bal = orderBalance(selectedOrder);
             const orderNum = selectedOrder.orderNumber || formatOrderNumber(selectedOrder.id, selectedOrder.createdAt);
-            const invoiceNum = selectedOrder.invoiceNumber || generateInvoiceNumber(selectedOrder.id);
+            const invoiceNum = getInvoiceNumberForOrder(selectedOrder.id, selectedOrder.status, selectedOrder.invoiceNumber);
 
             return (
               <div className="space-y-4">
@@ -1440,7 +1530,7 @@ export default function CasinoPOS() {
                   <CardFeesInfoBanner cardAmount={currentCardFees.cardAmount} />
                 )}
 
-                {/* DISCOUNT */}
+                {/* DISCOUNT - Seulement pour les commandes ouvertes */}
                 {selectedOrder.status === "open" && (
                   <div className="border border-amber-200 rounded-lg overflow-hidden">
                     <button
@@ -1503,7 +1593,7 @@ export default function CasinoPOS() {
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground mb-1 block">Motif (optionnel)</label>
-                          <Input className="h-8 text-sm" placeholder="Ex: client fidèle, promotion du jour…" value={discountReason} onChange={e => setDiscountReason(e.target.value)} />
+                          <Input className="h-8 text-sm" placeholder="Ex: client fidèle, promotion…" value={discountReason} onChange={e => setDiscountReason(e.target.value)} />
                         </div>
                         {discountInput !== "" && discountInput > 0 && (
                           <div className="bg-amber-100 border border-amber-300 rounded p-2.5 text-xs text-amber-800 space-y-0.5">
@@ -1589,23 +1679,21 @@ export default function CasinoPOS() {
                   </div>
                 )}
 
-                {/* Payment collection */}
+                {/* PAYMENT COLLECTION - AVEC PAIEMENTS PARTIELS */}
+                {/* On peut collecter n'importe quel montant, même inférieur au solde */}
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
+
+                    {/* Montant dû - information uniquement */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Montant dû (Ar)</label>
                         <Input
+                          type="number"
+                          value={bal}
                           disabled
-                          type="number" min={1}
-                          placeholder={bal > 0 ? `Restant : ${fmt(bal)} Ar` : "Montant"}
-                          value={payAmount}
-                          onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
-                            setPayAmount(v || "");
-                            if (receivedAmount !== "" && Number(receivedAmount) < v) setReceivedAmount(v);
-                          }}
+                          className="bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div>
@@ -1617,47 +1705,80 @@ export default function CasinoPOS() {
                             <SelectItem value="card">Carte bancaire</SelectItem>
                             <SelectItem value="mobile">Mobile Money</SelectItem>
                             <SelectItem value="bank">Virement bancaire</SelectItem>
+                            <SelectItem value="chips">Jetons</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
+
+                    {/* Montant reçu - champ libre sans minimum */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
                         <Input
-                          type="number" min={Number(payAmount) || 0}
-                          placeholder={payAmount ? `Min : ${fmt(Number(payAmount))} Ar` : "Payé"}
+                          type="number"
+                          step={100}
+                          placeholder="Montant reçu"
                           value={receivedAmount}
                           onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
-                            setReceivedAmount(v || "");
-                            setPayAmount(Math.min(v, bal));
+                            const v = Number(e.target.value);
+                            setReceivedAmount(v > 0 ? v : "");
                           }}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && receivedAmount && Number(receivedAmount) > 0) {
+                              handlePay();
+                            }
+                          }}
+                          autoFocus
                         />
                       </div>
                       <div className="flex flex-col justify-end">
-                        {changeToGive > 0 ? (
-                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                            <div className="text-xs text-blue-600">Monnaie à rendre</div>
-                            <div className="font-bold text-blue-700 text-lg">{fmt(changeToGive)} Ar</div>
-                          </div>
-                        ) : (
-                          <div className="bg-muted/30 rounded p-2 text-center">
-                            <div className="text-xs text-muted-foreground">Monnaie</div>
-                            <div className="font-medium text-muted-foreground">0 Ar</div>
-                          </div>
-                        )}
+                        {(() => {
+                          const rcv = receivedAmount !== "" ? Number(receivedAmount) : 0;
+                          if (rcv >= bal && bal > 0) {
+                            const change = rcv - bal;
+                            return (
+                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
+                                <div className="text-xs text-blue-600">Monnaie à rendre</div>
+                                <div className="font-bold text-blue-700 text-lg">{fmt(change)} Ar</div>
+                              </div>
+                            );
+                          } else if (rcv > 0 && rcv < bal) {
+                            return (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-center">
+                                <div className="text-xs text-yellow-600">Paiement partiel</div>
+                                <div className="font-medium text-yellow-700 text-sm">Reste: {fmt(bal - rcv)} Ar</div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="bg-muted/30 rounded p-2 text-center">
+                              <div className="text-xs text-muted-foreground">Monnaie</div>
+                              <div className="font-medium text-muted-foreground">0 Ar</div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
-                    {payAmount !== "" && bal > 0 && Number(payAmount) > bal && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
-                        Le montant du paiement ({fmt(Number(payAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
-                        Un crédit de {fmt(Number(payAmount) - bal)} Ar sera enregistré.
+                    {/* Message de paiement partiel */}
+                    {receivedAmount !== "" && Number(receivedAmount) > 0 && Number(receivedAmount) < bal && (
+                      <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
+                        ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                        Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
                       </div>
                     )}
 
-                    {payMethod === "card" && payAmount !== "" && Number(payAmount) > 0 && (
+                    {/* Message de crédit si montant reçu > solde */}
+                    {receivedAmount !== "" && Number(receivedAmount) > bal && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+                        ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
+                        Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
+                      </div>
+                    )}
+
+                    {/* Informations carte bancaire */}
+                    {payMethod === "card" && receivedAmount !== "" && Number(receivedAmount) > 0 && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                         <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
                           <CreditCard className="h-3.5 w-3.5 shrink-0" />
@@ -1666,19 +1787,32 @@ export default function CasinoPOS() {
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Montant consommé collecté</span>
-                            <span className="font-semibold text-green-700">{fmt(Number(payAmount))} Ar</span>
+                            <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
-                            <span className="text-red-600 font-semibold">+{fmt(nextCardFeePreview)} Ar</span>
+                            <span className="text-red-600 font-semibold">+{fmt(Math.round(Number(receivedAmount) * 0.05))} Ar</span>
                           </div>
                           <div className="flex justify-between border-t border-blue-200 pt-1">
                             <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
-                            <span className="text-blue-800 font-bold">{fmt(Number(payAmount) + nextCardFeePreview)} Ar</span>
+                            <span className="text-blue-800 font-bold">{fmt(Math.round(Number(receivedAmount) * 1.05))} Ar</span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground italic">
-                          L'établissement collecte {fmt(Number(payAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                          L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(Math.round(Number(receivedAmount) * 0.05))} Ar de frais sont retenus par la banque.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Informations Jetons */}
+                    {payMethod === "chips" && receivedAmount !== "" && Number(receivedAmount) > 0 && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-purple-800 font-medium text-xs">
+                          <Dices className="h-3.5 w-3.5" />
+                          Paiement en jetons
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Montant en jetons : <strong>{fmt(Number(receivedAmount))} Ar</strong>
                         </p>
                       </div>
                     )}
@@ -1687,11 +1821,16 @@ export default function CasinoPOS() {
                       className="w-full"
                       onClick={handlePay}
                       disabled={
-                        payOrder.isPending || !payAmount || Number(payAmount) <= 0 ||
-                        (receivedAmount !== "" && Number(receivedAmount) < Number(payAmount))
+                        payOrder.isPending ||
+                        !receivedAmount ||
+                        Number(receivedAmount) <= 0
                       }
                     >
-                      {payOrder.isPending ? "…" : `Collecter ${payAmount ? fmt(Number(payAmount)) + " Ar" : ""}`}
+                      {payOrder.isPending ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Traitement...</>
+                      ) : (
+                        `Collecter ${receivedAmount ? fmt(Number(receivedAmount)) + " Ar" : ""}`
+                      )}
                     </Button>
                   </div>
                 )}

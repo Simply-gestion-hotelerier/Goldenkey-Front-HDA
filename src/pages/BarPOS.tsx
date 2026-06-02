@@ -1,5 +1,5 @@
 // ============================================================
-// BAR POS - VERSION FRANÇAISE COMPLÈTE
+// BAR POS - VERSION FRANÇAISE COMPLÈTE AVEC PAIEMENTS PARTIELS
 // Numéro de facture fixe par commande, change à la clôture
 // ============================================================
 
@@ -42,7 +42,7 @@ const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoi
     return existingInvoice || generateNewInvoiceNumber();
   }
 
-  const key = `invoice_${orderId}`;
+  const key = `bar_invoice_${orderId}`;
   const stored = localStorage.getItem(key);
 
   if (stored) return stored;
@@ -55,7 +55,7 @@ const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoi
 
 // Nettoie le cache quand une commande est clôturée
 const clearInvoiceCache = (orderId: number) => {
-  const key = `invoice_${orderId}`;
+  const key = `bar_invoice_${orderId}`;
   localStorage.removeItem(key);
 };
 
@@ -329,7 +329,7 @@ function printA4(tableCode: string, order: any) {
       const op = operatorLabel(p);
       const pFees = p.method === "card" ? Math.round(p.amount * CARD_FEE_RATE) : 0;
       return `
-    <tr>
+    </tr>
       <td colspan="3" style="padding:8px;color:#059669">
         💳 ${METHOD_LBL[p.method] ?? p.method} — ${new Date(p.receivedAt).toLocaleDateString("fr-FR")}
         ${p.method === "card" ? `
@@ -343,7 +343,7 @@ function printA4(tableCode: string, order: any) {
         ${op ? `<br/><small style="color:#7c3aed;font-weight:600">👤 Opérateur : ${op}</small>` : ""}
         </td>
       <td style="text-align:right;padding:8px;color:#059669;font-weight:600">-${fmt(p.amount)} Ar</td>
-    </tr>`;
+     </tr>`
     })
     .join("");
 
@@ -674,7 +674,7 @@ export default function BarPOS() {
     },
     onSuccess: (response) => {
       if (response?.id) {
-        const key = `invoice_${response.id}`;
+        const key = `bar_invoice_${response.id}`;
         if (response.invoiceNumber) {
           localStorage.setItem(key, response.invoiceNumber);
         }
@@ -921,29 +921,24 @@ export default function BarPOS() {
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
+  // CORRECTION: handlePay modifié pour permettre les paiements partiels (comme CasinoPOS)
   const handlePay = () => {
-    const rcv = Number(receivedAmount);
-    const balActuel = orderBalance(selectedOrder);
+    const amountToCollect = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
 
-    if (!rcv || rcv <= 0) {
+    if (!amountToCollect || amountToCollect <= 0) {
       toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
       return;
     }
 
-    if (rcv < balActuel) {
-      toast({
-        title: "Montant insuffisant",
-        description: `Le montant reçu (${fmt(rcv)} Ar) est inférieur au montant dû (${fmt(balActuel)} Ar)`,
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Pas de vérification si le montant est inférieur au solde
+    // On collecte exactement ce que le client donne
+    // La facture gérera l'affichage du reste à payer ou du crédit
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: rcv,
+      amount: amountToCollect,
       method: payMethod,
-      receivedAmount: rcv,
+      receivedAmount: amountToCollect,
     });
   };
 
@@ -987,7 +982,7 @@ export default function BarPOS() {
                 >
                   {tab === "pos" && <Utensils className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
                   {tab === "waiters" && <Users className="inline h-4 w-4 mr-1.5 -mt-0.5" />}
-                  {tab === "pos" ? "lounge" : "Serveurs"}
+                  {tab === "pos" ? "Bar" : "Serveurs"}
                 </button>
               ))}
             </div>
@@ -1004,7 +999,7 @@ export default function BarPOS() {
                   <div className="flex gap-2">
                     <input
                       className="flex-1 px-3 py-2 rounded border bg-background text-sm"
-                      placeholder="Code (ex: R1)"
+                      placeholder="Code (ex: B1)"
                       value={newTableCode}
                       onChange={e => setNewTableCode(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && newTableCode.trim() && createTable.mutate(newTableCode.trim())}
@@ -1078,7 +1073,7 @@ export default function BarPOS() {
                           <Button key={cat.key} variant="outline" className="h-auto p-4 flex flex-col items-center gap-1 w-full" onClick={() => setSelectedCategory(cat.key)}>
                             <Utensils className="h-5 w-5" />
                             <span className="font-medium text-sm text-center">{cat.label}</span>
-                            <span className="text-xs text-muted-foreground">{count} plat{count > 1 ? "s" : ""}</span>
+                            <span className="text-xs text-muted-foreground">{count} article{count > 1 ? "s" : ""}</span>
                           </Button>
                         );
                       })}
@@ -1093,7 +1088,7 @@ export default function BarPOS() {
                       <div className="grid grid-cols-2 gap-2">
                         {filteredDishes.filter((d: any) => d.category === selectedCategory).length === 0 && !dishesLoading ? (
                           <div className="col-span-2 text-center text-sm text-muted-foreground py-4">
-                            {searchTerm ? "Aucun plat trouvé" : "Aucun plat dans cette catégorie"}
+                            {searchTerm ? "Aucun article trouvé" : "Aucun article dans cette catégorie"}
                           </div>
                         ) : (
                           filteredDishes.filter((d: any) => d.category === selectedCategory).map((dish: any) => (
@@ -1300,7 +1295,7 @@ export default function BarPOS() {
                               </div>
                               {!allDelivered(order.lines ?? []) && (order.lines ?? []).length > 0 && (
                                 <div className="text-xs text-orange-600 bg-orange-50 rounded p-2">
-                                  Tous les plats n'ont pas encore été livrés
+                                  Tous les articles n'ont pas encore été livrés
                                 </div>
                               )}
                             </div>
@@ -1359,11 +1354,11 @@ export default function BarPOS() {
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="text-lg">{detailDialog?.name}</DialogTitle>
-            <DialogDescription>
-              <Badge variant="secondary" className="mt-1">
+            <div className="mt-1">
+              <Badge variant="secondary">
                 {CATEGORIES.find(c => c.key === detailDialog?.category)?.label ?? detailDialog?.category}
               </Badge>
-            </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {detailDialog?.description && <p className="text-sm text-muted-foreground">{detailDialog.description}</p>}
@@ -1416,7 +1411,7 @@ export default function BarPOS() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Details / Payment / Discount */}
+      {/* Dialog Details / Payment / Discount - AVEC PAIEMENTS PARTIELS comme CasinoPOS */}
       <Dialog open={detailsOpen} onOpenChange={open => { if (!open) { setDetailsOpen(false); setSelectedOrder(null); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1682,120 +1677,127 @@ export default function BarPOS() {
                   </div>
                 )}
 
-                {/* Payment collection - Seulement pour les commandes ouvertes avec solde */}
+                {/* PAYMENT COLLECTION - AVEC PAIEMENTS PARTIELS (comme CasinoPOS) */}
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
-
-                    {/* Montant à collecter - désactivé et auto-rempli */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
-                        <Input
-                          type="number"
-                          value={bal}
-                          disabled
-                          className="bg-muted cursor-not-allowed"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Mode de paiement</label>
-                        <Select value={payMethod} onValueChange={v => setPayMethod(v as any)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">Espèces</SelectItem>
-                            <SelectItem value="card">Carte bancaire</SelectItem>
-                            <SelectItem value="mobile">Mobile Money</SelectItem>
-                            <SelectItem value="bank">Virement bancaire</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Reste à payer : <span className="font-bold text-red-600">{fmt(bal)} Ar</span>
                     </div>
 
-                    {/* Montant reçu - seul champ actif */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
-                        <Input
-                          type="number"
-                          min={bal}
-                          step={100}
-                          placeholder={`Montant reçu (min: ${fmt(bal)} Ar)`}
-                          value={receivedAmount}
-                          onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
-                            setReceivedAmount(v || "");
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && receivedAmount && Number(receivedAmount) >= bal) {
-                              handlePay();
-                            }
-                          }}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex flex-col justify-end">
-                        {(() => {
-                          const rcv = receivedAmount !== "" ? Number(receivedAmount) : 0;
-                          if (rcv >= bal) {
-                            const change = rcv - bal;
-                            return (
-                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                                <div className="text-xs text-blue-600">Monnaie à rendre</div>
-                                <div className="font-bold text-blue-700 text-lg">{fmt(change)} Ar</div>
-                              </div>
-                            );
+                    {/* Montant reçu - champ libre sans minimum */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
+                      <Input
+                        type="number"
+                        step={100}
+                        placeholder="Montant reçu"
+                        value={receivedAmount}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          setReceivedAmount(v > 0 ? v : "");
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && receivedAmount && Number(receivedAmount) > 0) {
+                            handlePay();
                           }
-                          return (
-                            <div className="bg-muted/30 rounded p-2 text-center">
-                              <div className="text-xs text-muted-foreground">Monnaie</div>
-                              <div className="font-medium text-muted-foreground">0 Ar</div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                        }}
+                        autoFocus
+                      />
                     </div>
 
-                    {/* Message si montant reçu insuffisant */}
-                    {receivedAmount !== "" && Number(receivedAmount) < bal && (
-                      <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-1.5">
-                        ❌ Le montant reçu ({fmt(Number(receivedAmount))} Ar) est inférieur au montant dû ({fmt(bal)} Ar)
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Mode de paiement</label>
+                      <Select value={payMethod} onValueChange={v => setPayMethod(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Espèces</SelectItem>
+                          <SelectItem value="card">Carte bancaire</SelectItem>
+                          <SelectItem value="mobile">Mobile Money</SelectItem>
+                          <SelectItem value="bank">Virement bancaire</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                    {/* Message de crédit si montant reçu > solde */}
-                    {receivedAmount !== "" && Number(receivedAmount) > bal && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
-                        ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
-                        Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
-                      </div>
-                    )}
+                    {receivedAmount && Number(receivedAmount) > 0 && (
+                      <>
+                        {/* Message de paiement partiel */}
+                        {Number(receivedAmount) < bal && (
+                          <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
+                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                            Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
+                          </div>
+                        )}
 
-                    {/* Informations carte bancaire */}
-                    {payMethod === "card" && receivedAmount !== "" && Number(receivedAmount) > 0 && Number(receivedAmount) >= bal && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
-                          <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                          Récapitulatif carte bancaire (information client)
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Montant consommé collecté</span>
-                            <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
+                        {/* Message de monnaie pour les espèces */}
+                        {payMethod === "cash" && Number(receivedAmount) > bal && (
+                          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-blue-700">Monnaie à rendre</span>
+                              <span className="font-bold text-blue-800 text-lg">{fmt(Number(receivedAmount) - bal)} Ar</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
-                            <span className="text-red-600 font-semibold">+{fmt(Math.round(Number(receivedAmount) * 0.05))} Ar</span>
+                        )}
+
+                        {/* Message de crédit */}
+                        {Number(receivedAmount) > bal && (
+                          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+                            ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
+                            Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
                           </div>
-                          <div className="flex justify-between border-t border-blue-200 pt-1">
-                            <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
-                            <span className="text-blue-800 font-bold">{fmt(Math.round(Number(receivedAmount) * 1.05))} Ar</span>
+                        )}
+
+                        {/* Informations carte bancaire */}
+                        {payMethod === "card" && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                            <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
+                              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                              Récapitulatif carte bancaire (information client)
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Montant consommé collecté</span>
+                                <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
+                                <span className="text-red-600 font-semibold">+{fmt(nextCardFeePreview)} Ar</span>
+                              </div>
+                              <div className="flex justify-between border-t border-blue-200 pt-1">
+                                <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
+                                <span className="text-blue-800 font-bold">{fmt(Number(receivedAmount) + nextCardFeePreview)} Ar</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground italic">
+                              L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                            </p>
                           </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic">
-                          L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(Math.round(Number(receivedAmount) * 0.05))} Ar de frais sont retenus par la banque.
-                        </p>
-                      </div>
+                        )}
+
+                        {/* Informations Mobile Money */}
+                        {payMethod === "mobile" && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-green-800 font-medium text-xs">
+                              <span>📱</span>Paiement Mobile Money
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Montant à collecter : <strong>{fmt(Number(receivedAmount))} Ar</strong>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Informations Virement */}
+                        {payMethod === "bank" && (
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-purple-800 font-medium text-xs">
+                              <span>🏦</span>Virement bancaire
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Montant à virer : <strong>{fmt(Number(receivedAmount))} Ar</strong>
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <Button
@@ -1804,8 +1806,7 @@ export default function BarPOS() {
                       disabled={
                         payOrder.isPending ||
                         !receivedAmount ||
-                        Number(receivedAmount) <= 0 ||
-                        Number(receivedAmount) < bal
+                        Number(receivedAmount) <= 0
                       }
                     >
                       {payOrder.isPending ? (

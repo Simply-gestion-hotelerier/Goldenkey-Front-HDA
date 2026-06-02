@@ -1,6 +1,6 @@
 // ============================================================
-// RESTAURANT POS - VERSION FRANÇAISE COMPLÈTE
-// Numéro de facture fixe par commande, change à la clôture
+// RESTAURANT POS - VERSION CORRIGÉE (comme CasinoPOS)
+// Numéro de facture fixe + bouton MOINS + paiements partiels
 // ============================================================
 
 import { Header } from "@/components/layout/header";
@@ -17,7 +17,7 @@ import {
   Clock, RefreshCw, MessageSquare, Printer, FileText,
   CheckCircle2, XCircle, ChevronDown, ChevronRight,
   ChevronLeft, Info, Hash, Tag, Percent, X, CreditCard,
-  Users, Plus, Minus, CheckCheck,
+  Users, Dices, Plus, CheckCheck, Minus, User,
 } from "lucide-react";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,38 +27,20 @@ import { WaiterAssignment } from "./WaiterAssignment";
 
 // ── Helpers numbers ────────────────────────────────────────────────────────────
 
-// Génère un numéro de facture unique avec lettres
-const generateNewInvoiceNumber = () => {
+// Génère un numéro de facture unique (comme CasinoPOS)
+const generateInvoiceNumber = (orderId?: number) => {
+  if (orderId) {
+    const saved = localStorage.getItem(`restaurant_invoice_${orderId}`);
+    if (saved) return saved;
+  }
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let code5 = "";
   for (let i = 0; i < 5; i++) code5 += letters.charAt(Math.floor(Math.random() * letters.length));
-  const timestamp = Date.now().toString().slice(-4);
-  return `INV-${code5}${timestamp}`;
-};
-
-// Récupère ou génère un numéro de facture pour une commande
-const getInvoiceNumberForOrder = (orderId: number, status: string, existingInvoice?: string) => {
-  // Si la commande est clôturée ou annulée, on peut générer un nouveau numéro
-  if (status === "closed" || status === "cancelled") {
-    return existingInvoice || generateNewInvoiceNumber();
+  const newInvoice = `INV-${code5}`;
+  if (orderId) {
+    localStorage.setItem(`restaurant_invoice_${orderId}`, newInvoice);
   }
-
-  // Pour les commandes actives, on utilise le numéro existant ou on en génère un nouveau
-  const key = `restaurant_invoice_${orderId}`;
-  const stored = localStorage.getItem(key);
-
-  if (stored) return stored;
-  if (existingInvoice) return existingInvoice;
-
-  const newInvoice = generateNewInvoiceNumber();
-  localStorage.setItem(key, newInvoice);
   return newInvoice;
-};
-
-// Nettoie le cache quand une commande est clôturée
-const clearInvoiceCache = (orderId: number) => {
-  const key = `restaurant_invoice_${orderId}`;
-  localStorage.removeItem(key);
 };
 
 const formatOrderNumber = (orderId: number, createdAt?: string) => {
@@ -98,9 +80,11 @@ const FIRE_STYLE: Record<string, string> = {
   delivered: "bg-green-100 text-green-800 border-green-200",
   voided: "bg-red-100 text-red-800 border-red-200",
 };
+
 const FIRE_LABEL: Record<string, string> = {
   commanded: "Commandé", preparing: "Préparation", ready: "Prêt", delivered: "Livré", voided: "Annulé",
 };
+
 const FIRE_ICON: Record<string, string> = {
   commanded: "⏳", preparing: "🔥", ready: "✅", delivered: "🍽", voided: "❌",
 };
@@ -167,7 +151,7 @@ const orderPaid = (o: any): number =>
 const orderBalance = (o: any): number =>
   Math.max(0, orderTotal(o) - orderPaid(o));
 
-// ── CARD FEES: informational calculation only ─────────────────────────────────
+// ── CARD FEES ─────────────────────────────────────────────────────────────────
 const CARD_FEE_RATE = 0.05;
 
 const computeCardFees = (payments: any[]): { cardAmount: number; fees: number; totalDebited: number } => {
@@ -194,7 +178,7 @@ function print80mm(tableCode: string, order: any) {
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
+  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
 
   const lines: string[] = [
     ctr(RESTAURANT.name, W),
@@ -252,13 +236,11 @@ function print80mm(tableCode: string, order: any) {
     lines.push(dsh);
   }
 
-  // Afficher le reste à payer ou le crédit client
   if (bal > 0) {
     lines.push(padL("RESTE À PAYER", fmt(bal) + " Ar", W));
   } else if (paid > total) {
     const credit = paid - total;
     lines.push(padL("CRÉDIT CLIENT", fmt(credit) + " Ar", W));
-    lines.push(padL("(À déduire prochaine commande)", "", W));
   } else {
     lines.push(padL("PAYÉ", "0 Ar", W));
   }
@@ -305,16 +287,17 @@ function printA4(tableCode: string, order: any) {
   const total = orderTotal(order);
   const paid = payments.reduce((s: number, p: any) => s + p.amount, 0);
   const balance = Math.max(0, total - paid);
+  const credit = paid > total ? paid - total : 0;
 
   const { cardAmount, fees: bankFees, totalDebited } = computeCardFees(payments);
 
   const orderNumber = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-  const invoiceNumber = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
+  const invoiceNumber = order.invoiceNumber || generateInvoiceNumber(order.id);
 
   const rows = (order.lines ?? [])
     .map(
       (l: any) => `
-    <tr>
+    </table>
        <td style="padding:8px;">
          <strong>${l.itemName ?? ""}</strong>
          ${l.comment ? `<br/><small style="color:#6b7280;font-style:italic">↳ ${l.comment}</small>` : ""}
@@ -346,13 +329,13 @@ function printA4(tableCode: string, order: any) {
         ${op ? `<br/><small style="color:#7c3aed;font-weight:600">👤 Opérateur : ${op}</small>` : ""}
         </td>
       <td style="text-align:right;padding:8px;color:#059669;font-weight:600">-${fmt(p.amount)} Ar</td>
-    </tr>`;
+     </tr>`
     })
     .join("");
 
   const discountRow =
     discount > 0
-      ? `<td>
+      ? `<tr>
           <td colspan="3" style="text-align:right;padding:8px;color:#b45309">
             Remise${order.discountReason ? ` — ${order.discountReason}` : ""}
             ${order.discountType === "percent" ? ` (${Math.round((discount / subtotal) * 100)}%)` : ""}
@@ -413,7 +396,7 @@ function printA4(tableCode: string, order: any) {
       tfoot td { font-weight: 700; border-top: 2px solid #0f2744; padding: 10px; }
       tfoot td:not(:first-child) { text-align: right; }
       .discount-banner { background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;color:#92400e;display:flex;justify-content:space-between; }
-      .balance { padding: 16px; border-radius: 8px; text-align: right; font-weight: 700; font-size: 14px; margin: 16px 0; }
+      .balance { padding: 16px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 14px; margin: 16px 0; }
       .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; text-align: center; line-height: 1.8; }
     </style>
     </head><body>
@@ -480,14 +463,14 @@ function printA4(tableCode: string, order: any) {
       : ""}
       </tfoot>
     </table>
-<div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"};padding:16px;border-radius:8px;text-align:center;font-weight:700;font-size:14px;margin:16px 0;">
-  ${balance > 0 
-    ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
-    : paid > total 
-      ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
-      : "✓ SOLDE PAYÉ"
-  }
-</div>
+
+    <div class="balance" style="background:${balance > 0 ? "#fee2e2" : credit > 0 ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : credit > 0 ? "#92400e" : "#065f46"}">
+      ${balance > 0 
+        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+        : credit > 0 
+          ? `💰 CRÉDIT CLIENT : ${fmt(credit)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
+          : "✓ SOLDE PAYÉ"
+      }
     </div>
 
     ${cardFeesSummaryBlock}
@@ -563,7 +546,6 @@ export default function RestaurantPOS() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
-  const [payAmount, setPayAmount] = useState<number | "">("");
   const [receivedAmount, setReceivedAmount] = useState<number | "">("");
   const [payMethod, setPayMethod] = useState<"cash" | "card" | "mobile" | "bank">("cash");
 
@@ -573,13 +555,6 @@ export default function RestaurantPOS() {
   const [showDiscountForm, setShowDiscountForm] = useState(false);
 
   const qo = { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 };
-
-  const changeToGive = useMemo(() => {
-    const a = Number(payAmount);
-    const r = Number(receivedAmount);
-    if (!a || !r || r < a) return 0;
-    return r - a;
-  }, [payAmount, receivedAmount]);
 
   const discountPreviewAr = useMemo(() => {
     if (!selectedOrder || discountInput === "") return 0;
@@ -595,9 +570,9 @@ export default function RestaurantPOS() {
   }, [selectedOrder]);
 
   const nextCardFeePreview = useMemo(() => {
-    if (payMethod !== "card" || !payAmount || Number(payAmount) <= 0) return 0;
-    return Math.round(Number(payAmount) * CARD_FEE_RATE);
-  }, [payMethod, payAmount]);
+    if (payMethod !== "card" || !receivedAmount || Number(receivedAmount) <= 0) return 0;
+    return Math.round(Number(receivedAmount) * CARD_FEE_RATE);
+  }, [payMethod, receivedAmount]);
 
   // Queries
   const { data: tables = [] } = useQuery({
@@ -619,24 +594,20 @@ export default function RestaurantPOS() {
     ...qo,
   });
 
-  // Récupérer TOUTES les commandes (pas seulement open)
   const { data: allOrders = [], refetch: refetchOrders } = useQuery({
     queryKey: ["orders", "restaurant"],
-    queryFn: async () => {
-      const orders = await api.get<any[]>("/restaurant/orders");
-      return orders;
-    },
+    queryFn: () => api.get<any[]>("/restaurant/orders?status=open"),
     ...qo,
   });
 
-  // Derived - Filtrer les commandes actives (non fermées)
+  // Derived
   const tableOrders = useMemo(
-    () => (allOrders as any[]).filter((o: any) => o.table?.code === table && o.status !== "closed" && o.status !== "cancelled"),
+    () => (allOrders as any[]).filter((o: any) => o.table?.code === table),
     [allOrders, table]
   );
 
   const getTableOrders = (code: string) =>
-    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status !== "closed" && o.status !== "cancelled");
+    (allOrders as any[]).filter((o: any) => o.table?.code === code && o.status === "open");
 
   const filteredDishes = useMemo(() => {
     if (!Array.isArray(dishes)) return [];
@@ -682,15 +653,12 @@ export default function RestaurantPOS() {
 
   const createOrder = useMutation({
     mutationFn: async (tableCode: string) => {
-      const invoiceNumber = generateNewInvoiceNumber();
+      const invoiceNumber = generateInvoiceNumber();
       return api.post("/restaurant/orders", { dept: "restaurant", tableCode, invoiceNumber });
     },
     onSuccess: (response) => {
-      if (response?.id) {
-        const key = `restaurant_invoice_${response.id}`;
-        if (response.invoiceNumber) {
-          localStorage.setItem(key, response.invoiceNumber);
-        }
+      if (response?.id && response?.invoiceNumber) {
+        localStorage.setItem(`restaurant_invoice_${response.id}`, response.invoiceNumber);
       }
       qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
     },
@@ -723,39 +691,31 @@ export default function RestaurantPOS() {
   });
 
   const incrementLine = useMutation({
-    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
-      const response = await api.patch(`/restaurant/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 });
-      return response.data;
-    },
+    mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) =>
+      api.patch(`/restaurant/orders/${orderId}/lines/${lineId}`, { qty: currentQty + 1 }),
     onSuccess: async (_, { orderId }) => {
-      await qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
       await refetchOrders();
-      if (selectedOrder && selectedOrder.id === orderId) {
-        await refreshSelectedOrder(orderId);
-      }
+      if (selectedOrder && selectedOrder.id === orderId) await refreshSelectedOrder(orderId);
       toast({ title: "Quantité augmentée" });
     },
     onError: (e: any) =>
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
   });
 
-  // Mutation pour diminuer la quantité
+  // Mutation pour diminuer la quantité (bouton MOINS)
   const decrementLine = useMutation({
-    mutationFn: async ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
+    mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
       if (currentQty <= 1) {
-        await api.del(`/restaurant/orders/${orderId}/lines/${lineId}`);
-        return { deleted: true };
+        return api.del(`/restaurant/orders/${orderId}/lines/${lineId}`);
       }
-      const response = await api.patch(`/restaurant/orders/${orderId}/lines/${lineId}`, { qty: currentQty - 1 });
-      return { deleted: false, data: response.data };
+      return api.patch(`/restaurant/orders/${orderId}/lines/${lineId}`, { qty: currentQty - 1 });
     },
-    onSuccess: async (result, { orderId }) => {
-      await qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
+    onSuccess: async (_, { orderId }) => {
+      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
       await refetchOrders();
-      if (selectedOrder && selectedOrder.id === orderId) {
-        await refreshSelectedOrder(orderId);
-      }
-      toast({ title: result?.deleted ? "Article supprimé" : "Quantité diminuée" });
+      if (selectedOrder && selectedOrder.id === orderId) await refreshSelectedOrder(orderId);
+      toast({ title: "Quantité diminuée" });
     },
     onError: (e: any) =>
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
@@ -769,7 +729,6 @@ export default function RestaurantPOS() {
   const closeOrder = useMutation({
     mutationFn: async (id: number) => api.post(`/restaurant/orders/${id}/close`),
     onSuccess: async (_, id) => {
-      clearInvoiceCache(id);
       qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
       await refreshSelectedOrder(id);
       toast({ title: "Commande clôturée" });
@@ -794,7 +753,6 @@ export default function RestaurantPOS() {
         title: "Paiement enregistré",
         description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
       });
-      setPayAmount("");
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
       qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
@@ -855,6 +813,7 @@ export default function RestaurantPOS() {
     try {
       const order = await api.get<any>(`/restaurant/orders/${orderId}`);
       if (!order.orderNumber) order.orderNumber = formatOrderNumber(order.id, order.createdAt);
+      if (!order.invoiceNumber) order.invoiceNumber = generateInvoiceNumber(order.id);
       setSelectedOrder(order);
     } catch {
       toast({ title: "Impossible de charger la commande", variant: "destructive" });
@@ -866,7 +825,6 @@ export default function RestaurantPOS() {
   const openDetails = async (order: any) => {
     setDetailsOpen(true);
     setSelectedOrder(order);
-    setPayAmount("");
     setReceivedAmount("");
     setDiscountInput("");
     setDiscountReason("");
@@ -875,7 +833,7 @@ export default function RestaurantPOS() {
   };
 
   const createOrderIfNeeded = async (tc: string): Promise<number> => {
-    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status !== "closed" && o.status !== "cancelled");
+    const ex = (allOrders as any[]).find((o: any) => o.table?.code === tc && o.status === "open");
     if (ex) return ex.id;
     const response = await createOrder.mutateAsync(tc);
     return (response as any).id;
@@ -918,16 +876,8 @@ export default function RestaurantPOS() {
       open: "bg-yellow-50 text-yellow-700 border-yellow-200",
       closed: "bg-green-50 text-green-700 border-green-200",
       cancelled: "bg-red-50 text-red-700 border-red-200",
-      pending: "bg-blue-50 text-blue-700 border-blue-200",
-      preparing: "bg-purple-50 text-purple-700 border-purple-200",
     };
-    const labels: Record<string, string> = {
-      open: "Active",
-      closed: "Fermée",
-      cancelled: "Annulée",
-      pending: "En attente",
-      preparing: "Préparation"
-    };
+    const labels: Record<string, string> = { open: "Active", closed: "Fermée", cancelled: "Annulée" };
     return <Badge variant="outline" className={styles[s] ?? styles.open}>{labels[s] ?? s}</Badge>;
   };
 
@@ -937,29 +887,24 @@ export default function RestaurantPOS() {
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
+  // CORRECTION: handlePay modifié pour permettre les paiements partiels (comme CasinoPOS)
   const handlePay = () => {
-    const rcv = Number(receivedAmount);
-    const balActuel = orderBalance(selectedOrder);
+    const amountToCollect = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
 
-    if (!rcv || rcv <= 0) {
+    if (!amountToCollect || amountToCollect <= 0) {
       toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
       return;
     }
 
-    if (rcv < balActuel) {
-      toast({
-        title: "Montant insuffisant",
-        description: `Le montant reçu (${fmt(rcv)} Ar) est inférieur au montant dû (${fmt(balActuel)} Ar)`,
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Pas de vérification si le montant est inférieur au solde
+    // On collecte exactement ce que le client donne
+    // La facture gérera l'affichage du reste à payer ou du crédit
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: rcv,
+      amount: amountToCollect,
       method: payMethod,
-      receivedAmount: rcv,
+      receivedAmount: amountToCollect,
     });
   };
 
@@ -987,7 +932,7 @@ export default function RestaurantPOS() {
           {/* Title + tabs */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Prise de commande</h1>
+              <h1 className="text-3xl font-bold">Restaurant POS</h1>
               <p className="text-muted-foreground">Tables → Plats → Paiement</p>
             </div>
 
@@ -1174,7 +1119,7 @@ export default function RestaurantPOS() {
                       ) : (
                         tableOrders.map((order: any) => {
                           const orderNum = order.orderNumber || formatOrderNumber(order.id, order.createdAt);
-                          const invoiceNum = getInvoiceNumberForOrder(order.id, order.status, order.invoiceNumber);
+                          const invoiceNum = order.invoiceNumber || generateInvoiceNumber(order.id);
                           const sub = orderSubtotal(order);
                           const disc = orderDiscount(order);
                           const tot = orderTotal(order);
@@ -1231,20 +1176,13 @@ export default function RestaurantPOS() {
                                                 size="sm"
                                                 variant="outline"
                                                 className="h-6 w-6 p-0 text-red-600 border-red-200 hover:bg-red-50"
-                                                title="Enlever 1 unité"
+                                                title="Diminuer d'1 unité"
                                                 disabled={decrementLine.isPending}
-                                                onClick={async () => {
-                                                  try {
-                                                    await decrementLine.mutateAsync({
-                                                      orderId: order.id,
-                                                      lineId: line.id,
-                                                      currentQty: line.qty,
-                                                    });
-                                                    await refetchOrders();
-                                                  } catch (error) {
-                                                    console.error("Erreur:", error);
-                                                  }
-                                                }}
+                                                onClick={() => decrementLine.mutate({
+                                                  orderId: order.id,
+                                                  lineId: line.id,
+                                                  currentQty: line.qty,
+                                                })}
                                               >
                                                 <Minus className="h-3.5 w-3.5" />
                                               </Button>
@@ -1255,18 +1193,14 @@ export default function RestaurantPOS() {
                                                 className="h-6 w-6 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
                                                 title="Ajouter 1 unité"
                                                 disabled={incrementLine.isPending}
-                                                onClick={async () => {
-                                                  await incrementLine.mutateAsync({
-                                                    orderId: order.id,
-                                                    lineId: line.id,
-                                                    currentQty: line.qty,
-                                                  });
-                                                  await refetchOrders();
-                                                }}
+                                                onClick={() => incrementLine.mutate({
+                                                  orderId: order.id,
+                                                  lineId: line.id,
+                                                  currentQty: line.qty,
+                                                })}
                                               >
                                                 <Plus className="h-3.5 w-3.5" />
                                               </Button>
-                                              {/* Bouton Livré */}
                                               {line.fireStatus !== "delivered" && (
                                                 <Button
                                                   size="sm"
@@ -1378,11 +1312,11 @@ export default function RestaurantPOS() {
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="text-lg">{detailDialog?.name}</DialogTitle>
-            <DialogDescription>
-              <Badge variant="secondary" className="mt-1">
+            <div className="mt-1">
+              <Badge variant="secondary">
                 {CATEGORIES.find(c => c.key === detailDialog?.category)?.label ?? detailDialog?.category}
               </Badge>
-            </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {detailDialog?.description && <p className="text-sm text-muted-foreground">{detailDialog.description}</p>}
@@ -1435,14 +1369,12 @@ export default function RestaurantPOS() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Details / Payment / Discount */}
+      {/* Dialog Details / Payment / Discount - AVEC PAIEMENTS PARTIELS comme CasinoPOS */}
       <Dialog open={detailsOpen} onOpenChange={open => { if (!open) { setDetailsOpen(false); setSelectedOrder(null); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Commande {selectedOrder?.orderNumber || `#${selectedOrder?.id}`}</DialogTitle>
-            <DialogDescription>
-              Table {selectedOrder?.table?.code ?? "—"} · Statut: {statusBadge(selectedOrder?.status)}
-            </DialogDescription>
+            <DialogDescription>Table {selectedOrder?.table?.code ?? "—"} · {selectedOrder?.status === "open" ? "Active" : "Fermée"}</DialogDescription>
           </DialogHeader>
 
           {loadingOrder && <div className="py-8 text-center text-muted-foreground text-sm">Chargement…</div>}
@@ -1454,7 +1386,7 @@ export default function RestaurantPOS() {
             const paid = orderPaid(selectedOrder);
             const bal = orderBalance(selectedOrder);
             const orderNum = selectedOrder.orderNumber || formatOrderNumber(selectedOrder.id, selectedOrder.createdAt);
-            const invoiceNum = getInvoiceNumberForOrder(selectedOrder.id, selectedOrder.status, selectedOrder.invoiceNumber);
+            const invoiceNum = selectedOrder.invoiceNumber || generateInvoiceNumber(selectedOrder.id);
 
             return (
               <div className="space-y-4">
@@ -1552,7 +1484,7 @@ export default function RestaurantPOS() {
                   <CardFeesInfoBanner cardAmount={currentCardFees.cardAmount} />
                 )}
 
-                {/* DISCOUNT - Seulement pour les commandes ouvertes */}
+                {/* DISCOUNT */}
                 {selectedOrder.status === "open" && (
                   <div className="border border-amber-200 rounded-lg overflow-hidden">
                     <button
@@ -1701,120 +1633,127 @@ export default function RestaurantPOS() {
                   </div>
                 )}
 
-                {/* Payment collection - Seulement pour les commandes ouvertes avec solde */}
+                {/* PAYMENT COLLECTION - AVEC PAIEMENTS PARTIELS (comme CasinoPOS) */}
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
-
-                    {/* Montant à collecter - désactivé et auto-rempli */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Montant à collecter (Ar)</label>
-                        <Input
-                          type="number"
-                          value={bal}
-                          disabled
-                          className="bg-muted cursor-not-allowed"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Mode de paiement</label>
-                        <Select value={payMethod} onValueChange={v => setPayMethod(v as any)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">Espèces</SelectItem>
-                            <SelectItem value="card">Carte bancaire</SelectItem>
-                            <SelectItem value="mobile">Mobile Money</SelectItem>
-                            <SelectItem value="bank">Virement bancaire</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Reste à payer : <span className="font-bold text-red-600">{fmt(bal)} Ar</span>
                     </div>
 
-                    {/* Montant reçu - seul champ actif */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
-                        <Input
-                          type="number"
-                          min={bal}
-                          step={100}
-                          placeholder={`Montant reçu (min: ${fmt(bal)} Ar)`}
-                          value={receivedAmount}
-                          onChange={e => {
-                            const v = Math.max(0, Number(e.target.value));
-                            setReceivedAmount(v || "");
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && receivedAmount && Number(receivedAmount) >= bal) {
-                              handlePay();
-                            }
-                          }}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex flex-col justify-end">
-                        {(() => {
-                          const rcv = receivedAmount !== "" ? Number(receivedAmount) : 0;
-                          if (rcv >= bal) {
-                            const change = rcv - bal;
-                            return (
-                              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                                <div className="text-xs text-blue-600">Monnaie à rendre</div>
-                                <div className="font-bold text-blue-700 text-lg">{fmt(change)} Ar</div>
-                              </div>
-                            );
+                    {/* Montant reçu - champ libre sans minimum */}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
+                      <Input
+                        type="number"
+                        step={100}
+                        placeholder="Montant reçu"
+                        value={receivedAmount}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          setReceivedAmount(v > 0 ? v : "");
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && receivedAmount && Number(receivedAmount) > 0) {
+                            handlePay();
                           }
-                          return (
-                            <div className="bg-muted/30 rounded p-2 text-center">
-                              <div className="text-xs text-muted-foreground">Monnaie</div>
-                              <div className="font-medium text-muted-foreground">0 Ar</div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                        }}
+                        autoFocus
+                      />
                     </div>
 
-                    {/* Message si montant reçu insuffisant */}
-                    {receivedAmount !== "" && Number(receivedAmount) < bal && (
-                      <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-1.5">
-                        ❌ Le montant reçu ({fmt(Number(receivedAmount))} Ar) est inférieur au montant dû ({fmt(bal)} Ar)
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Mode de paiement</label>
+                      <Select value={payMethod} onValueChange={v => setPayMethod(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Espèces</SelectItem>
+                          <SelectItem value="card">Carte bancaire</SelectItem>
+                          <SelectItem value="mobile">Mobile Money</SelectItem>
+                          <SelectItem value="bank">Virement bancaire</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                    {/* Message de crédit si montant reçu > solde */}
-                    {receivedAmount !== "" && Number(receivedAmount) > bal && (
-                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
-                        ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
-                        Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
-                      </div>
-                    )}
+                    {receivedAmount && Number(receivedAmount) > 0 && (
+                      <>
+                        {/* Message de paiement partiel */}
+                        {Number(receivedAmount) < bal && (
+                          <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
+                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                            Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
+                          </div>
+                        )}
 
-                    {/* Informations carte bancaire */}
-                    {payMethod === "card" && receivedAmount !== "" && Number(receivedAmount) > 0 && Number(receivedAmount) >= bal && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
-                          <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                          Récapitulatif carte bancaire (information client)
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Montant consommé collecté</span>
-                            <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
+                        {/* Message de monnaie pour les espèces */}
+                        {payMethod === "cash" && Number(receivedAmount) > bal && (
+                          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-blue-700">Monnaie à rendre</span>
+                              <span className="font-bold text-blue-800 text-lg">{fmt(Number(receivedAmount) - bal)} Ar</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
-                            <span className="text-red-600 font-semibold">+{fmt(Math.round(Number(receivedAmount) * 0.05))} Ar</span>
+                        )}
+
+                        {/* Message de crédit */}
+                        {Number(receivedAmount) > bal && (
+                          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+                            ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
+                            Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
                           </div>
-                          <div className="flex justify-between border-t border-blue-200 pt-1">
-                            <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
-                            <span className="text-blue-800 font-bold">{fmt(Math.round(Number(receivedAmount) * 1.05))} Ar</span>
+                        )}
+
+                        {/* Informations carte bancaire */}
+                        {payMethod === "card" && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                            <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
+                              <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                              Récapitulatif carte bancaire (information client)
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Montant consommé collecté</span>
+                                <span className="font-semibold text-green-700">{fmt(Number(receivedAmount))} Ar</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-red-600">+ Frais bancaires (5%) — retenus par la banque</span>
+                                <span className="text-red-600 font-semibold">+{fmt(nextCardFeePreview)} Ar</span>
+                              </div>
+                              <div className="flex justify-between border-t border-blue-200 pt-1">
+                                <span className="text-blue-800 font-semibold">Total débité de la carte du client</span>
+                                <span className="text-blue-800 font-bold">{fmt(Number(receivedAmount) + nextCardFeePreview)} Ar</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground italic">
+                              L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                            </p>
                           </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic">
-                          L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(Math.round(Number(receivedAmount) * 0.05))} Ar de frais sont retenus par la banque.
-                        </p>
-                      </div>
+                        )}
+
+                        {/* Informations Mobile Money */}
+                        {payMethod === "mobile" && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-green-800 font-medium text-xs">
+                              <span>📱</span>Paiement Mobile Money
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Montant à collecter : <strong>{fmt(Number(receivedAmount))} Ar</strong>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Informations Virement */}
+                        {payMethod === "bank" && (
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-purple-800 font-medium text-xs">
+                              <span>🏦</span>Virement bancaire
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Montant à virer : <strong>{fmt(Number(receivedAmount))} Ar</strong>
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <Button
@@ -1823,8 +1762,7 @@ export default function RestaurantPOS() {
                       disabled={
                         payOrder.isPending ||
                         !receivedAmount ||
-                        Number(receivedAmount) <= 0 ||
-                        Number(receivedAmount) < bal
+                        Number(receivedAmount) <= 0
                       }
                     >
                       {payOrder.isPending ? (
@@ -1835,6 +1773,7 @@ export default function RestaurantPOS() {
                     </Button>
                   </div>
                 )}
+
                 {selectedOrder.status === "open" && bal === 0 && (
                   <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded p-3 text-sm font-medium">
                     <CheckCircle2 className="h-4 w-4" /> Commande entièrement payée
@@ -1857,7 +1796,6 @@ export default function RestaurantPOS() {
                         {closeOrder.isPending ? "…" : "Fermer"}
                       </Button>
                     )}
-
                     <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)}>Fermer</Button>
                   </div>
                 </div>
