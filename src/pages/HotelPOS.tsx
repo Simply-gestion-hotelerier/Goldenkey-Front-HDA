@@ -626,6 +626,9 @@ export default function HotelPOS() {
     return map;
   }, [activeReservations]);
 
+  console.log("roomGuestMap", roomGuestMap);
+  console.log("activeReservations", activeReservations);
+
   useEffect(() => {
     if ((tables as any[]).length && !table) {
       // Pré-sélectionner depuis ?room=XX (lien depuis GuestInvoice)
@@ -973,7 +976,7 @@ export default function HotelPOS() {
     // La facture gérera l'affichage du reste à payer ou du crédit
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: amountToCollect,
+      amount: currentBalance,
       method: payMethod,
       receivedAmount: amountToCollect,
     });

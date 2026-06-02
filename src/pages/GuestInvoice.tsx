@@ -88,6 +88,7 @@ interface GuestFolio {
   checkOut: string;
   nights: number;
   ratePerNight: number;
+  rateMode: "per_night" | "per_stay";
   charges: FolioCharge[];
   payments: FolioPayment[];
   orders: LinkedOrder[];
@@ -175,7 +176,10 @@ export default function GuestInvoice() {
       dsh,
       padLine(t('guestInvoice.roomLabel') + ` x${folio.nights}`, fmt(convert(folio.ratePerNight * folio.nights)) + " " + sym, W),
       ...folio.charges
-        .filter((c) => !c.description.toLowerCase().includes("chambre"))
+        .filter((c) => {
+          const d = c.description.toLowerCase();
+          return !d.includes("chambre") && !d.includes("hébergement") && !d.includes("hebergement");
+        })
         .map((c) =>
           padLine(c.description.substring(0, 26) + (c.qty > 1 ? ` x${c.qty}` : ""), fmt(convert(c.unitPrice * c.qty)) + " " + sym, W)
         ),
@@ -232,7 +236,10 @@ export default function GuestInvoice() {
         <td style="text-align:right">${fmt(convert(folio.ratePerNight))} ${sym}</td>
         <td style="text-align:right">${folio.nights}</td>
         <td style="text-align:right;font-weight:600">${fmt(convert(folio.ratePerNight * folio.nights))} ${sym}</td></tr>`,
-      ...folio.charges.filter(c => !c.description.toLowerCase().includes("chambre")).map(c =>
+      ...folio.charges.filter(c => {
+        const d = c.description.toLowerCase();
+        return !d.includes("chambre") && !d.includes("hébergement") && !d.includes("hebergement");
+      }).map(c =>
         `<tr>
           <td>${new Date(c.createdAt).toLocaleDateString("fr-FR")}</td>
           <td>${c.description}</td>
@@ -619,12 +626,26 @@ export default function GuestInvoice() {
                         <td className="p-2">
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{t('guestInvoice.hotelDept')}</span>
                         </td>
-                        <td className="p-2 text-right">{fmt(convert(folio.ratePerNight))} {sym}</td>
-                        <td className="p-2 text-right">{folio.nights}</td>
-                        <td className="p-2 text-right font-semibold">{fmt(convert(folio.ratePerNight * folio.nights))} {sym}</td>
+                        <td className="p-2 text-right">
+                          {folio.rateMode === "per_stay"
+                            ? `${fmt(convert(folio.ratePerNight))} ${sym}`
+                            : `${fmt(convert(folio.ratePerNight))} ${sym}`}
+                        </td>
+                        <td className="p-2 text-right">
+                          {folio.rateMode === "per_stay" ? "1 séjour" : folio.nights}
+                        </td>
+                        <td className="p-2 text-right font-semibold">
+                          {folio.rateMode === "per_stay"
+                            ? `${fmt(convert(folio.ratePerNight))} ${sym}`
+                            : `${fmt(convert(folio.ratePerNight * folio.nights))} ${sym}`}
+                        </td>
                       </tr>
                       {folio.charges
-                        .filter((c) => !c.description.toLowerCase().includes("chambre"))
+                        .filter((c) => {
+                          const d = c.description.toLowerCase();
+                          // Exclure la charge hébergement déjà affichée en ligne chambre
+                          return !d.includes("chambre") && !d.includes("hébergement") && !d.includes("hebergement");
+                        })
                         .map((c) => (
                           <tr key={c.id} className="border-b hover:bg-muted/20 transition-colors">
                             <td className="p-2 text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("fr-FR")}</td>

@@ -93,7 +93,6 @@ export const getNavGroups = (t: (key: string) => string) => [
       { name: t("nav.restaurant"),        href: "/restaurant",      icon: UtensilsCrossed },
       { name: "Restaurant POS",           href: "/restaurant/pos",  icon: ClipboardList   },
       { name: t("nav.menu"),              href: "/restaurant/menu", icon: Scroll          },
-      /*{ name: "KDS (Cuisine)",            href: "/restaurant/kds",  icon: ChefHat         },*/
     ],
   },
   {
@@ -139,7 +138,7 @@ const roleAccess: Record<Role, string[]> = {
   admin: [
     "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
     "/hotel", "/hotel/pos", "/hotel/menu",
-    "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
     "/bar", "/bar/pos", "/bar/menu",
     "/casino", "/casino/pos", "/casino/menu",
     "/invoices/client", "/invoices/daily", "/cash", "/reports",
@@ -149,23 +148,39 @@ const roleAccess: Record<Role, string[]> = {
   manager: [
     "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
     "/hotel", "/hotel/pos", "/hotel/menu",
-    "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
     "/bar", "/bar/pos", "/bar/menu",
     "/invoices/client", "/invoices/daily", "/cash", "/reports",
-    "/notifications", "/settings",
+    "/inventory",
+    "/notifications", "/settings", "/room-inspection",
   ],
   reception: [
     "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm",
-    "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
+    "/hotel/pos",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
     "/invoices/client",
     "/notifications", "/settings",
   ],
-  serveur:      ["/", "/restaurant", "/restaurant/pos", "/notifications", "/settings"],
-  compta:       ["/", "/invoices/client", "/invoices/daily", "/cash", "/reports", "/notifications", "/settings"],
-  housekeeping: ["/", "/housekeeping", "/notifications", "/settings"],
-  cuisine:      ["/", "/restaurant", "/restaurant/kds", "/notifications", "/settings"],
-
-  bar:          ["/", "/bar", "/bar/pos", "/notifications", "/settings"],
+  serveur: [
+    "/", "/restaurant", "/restaurant/pos", "/restaurant/menu",
+    "/notifications", "/settings",
+  ],
+  bar: [
+    "/", "/bar", "/bar/pos", "/bar/menu",
+    "/notifications", "/settings",
+  ],
+  cuisine: [
+    "/", "/restaurant", 
+    "/notifications", "/settings",
+  ],
+  compta: [
+    "/", "/invoices/client", "/invoices/daily", "/cash", "/reports",
+    "/notifications", "/settings",
+  ],
+  housekeeping: [
+    "/", "/housekeeping", "/room-inspection",
+    "/notifications", "/settings",
+  ],
 };
 
 // ─── NavButton ────────────────────────────────────────────────────────────────

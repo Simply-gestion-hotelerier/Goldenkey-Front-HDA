@@ -54,39 +54,51 @@ const queryClient = new QueryClient();
 // === Configuration des accès par rôle ===
 const roleAccess: Record<Role, string[]> = {
   admin: [
-    "/", "/hotelrooms", "/reservations", "/hotelrooms/plan", "/rooms/manage", "/crm",
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
     "/hotel", "/hotel/pos", "/hotel/menu",
-    "/bar", "/bar/menu", "/bar/pos",
-    "/restaurant", "/restaurant/pos", "/restaurant/menu", "/restaurant/kds",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
+    "/bar", "/bar/pos", "/bar/menu",
     "/casino", "/casino/pos", "/casino/menu",
-     "/bar", "/bar/menu", "/bar/pos",
-    "/inventory", "/invoices/daily", "/cash", "/reports",
-    "/housekeeping", "/notifications", "/settings", "/team" , "/room-inspection", "/invoices/client"
+    "/invoices/client", "/invoices/daily", "/cash", "/reports",
+    "/inventory",
+    "/notifications", "/settings", "/team", "/room-inspection",
   ],
   manager: [
-    "/hotelrooms", "/reservations", "/restaurant", "/pub",
-    "/crm", "/reports", "/notifications", "/settings", "/cash",
-    "/invoices/daily", "/housekeeping", "/room-inspection"
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm", "/housekeeping",
+    "/hotel", "/hotel/pos", "/hotel/menu",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
+    "/bar", "/bar/pos", "/bar/menu",
+    "/invoices/client", "/invoices/daily", "/cash", "/reports",
+    "/inventory",
+    "/notifications", "/settings", "/room-inspection",
   ],
   reception: [
-    "/reservations", "/hotelrooms/plan", "/crm", "/notifications", "/settings"
-  ],
-  housekeeping: [
-    "/housekeeping", "/notifications", "/settings", "/room-inspection"
-  ],
-  cuisine: [
-    "/restaurant/kds", "/notifications", "/settings"
+    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm",
+    "/hotel/pos",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
+    "/invoices/client",
+    "/notifications", "/settings",
   ],
   serveur: [
-    "/restaurant", "/restaurant/pos", "/notifications", "/settings"
+    "/", "/restaurant", "/restaurant/pos", "/restaurant/menu",
+    "/notifications", "/settings",
   ],
   bar: [
-    "/pub", "/bar", "/bar/pos", "/notifications", "/settings"
+    "/", "/bar", "/bar/pos", "/bar/menu",
+    "/notifications", "/settings",
   ],
- 
+  cuisine: [
+    "/", "/restaurant", 
+    "/notifications", "/settings",
+  ],
   compta: [
-    "/cash", "/invoices/daily", "/reports", "/notifications", "/settings"
-  ]
+    "/", "/invoices/client", "/invoices/daily", "/cash", "/reports",
+    "/notifications", "/settings",
+  ],
+  housekeeping: [
+    "/", "/housekeeping", "/room-inspection",
+    "/notifications", "/settings",
+  ],
 };
 
 // === Routes protégées AVEC second login ===

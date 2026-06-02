@@ -902,7 +902,7 @@ export default function RestaurantPOS() {
     // La facture gérera l'affichage du reste à payer ou du crédit
     payOrder.mutate({
       orderId: selectedOrder.id,
-      amount: amountToCollect,
+      amount: currentBalance,
       method: payMethod,
       receivedAmount: amountToCollect,
     });

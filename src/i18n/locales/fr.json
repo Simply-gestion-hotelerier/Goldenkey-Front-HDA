@@ -1,5 +1,6 @@
 {
-  "common": {
+  "common": {    
+    "active": "Active",
     "save": "Enregistrer",
     "cancel": "Annuler",
     "delete": "Supprimer",
@@ -82,7 +83,8 @@
     "deleteError": "Erreur de suppression",
     "refreshing": "Actualisation...",
     "price": "Prix",
-    "capacity": "Capacité"
+    "capacity": "Capacité",    
+    "optional": "Optionnel"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -391,6 +393,7 @@
     "bedType": "Type de lit"
   },
   "hotel": {
+    "roomType": "Type de chambre",
     "configuration": "Configuration",
     "statusAvailable": "Disponible",
     "statusOccupied": "Occupée",
@@ -687,9 +690,11 @@
     "hotel_reservations": "Réservations Hôtel",
     "hotel_services": "Services Hôtel",
     "lounge": "Lounge / Bar",
-    "casino": "Casino"
+    "casino": "Casino",
+    "total" : "Total"
   },
-  "restaurant": {
+  "restaurant": {    
+    "category": "Catégorie",
     "subtitle": "Commandes • Cuisine • Inventaire • Caisse",
     "hotelName": "Hôtel de l'Avenue  -  Nail Bar",
     "table": "Table",
@@ -819,7 +824,7 @@
     "exportSuccess": "Export réussi"
   },
   "crm": {
-    "title": "CRM & Relations Clients",
+    "title": "CRM & Relations Clients",    
     "subtitle": "Base clients • Séjours • Communications",
     "totalCustomers": "Total clients",
     "totalVisits": "Total séjours",
@@ -850,6 +855,7 @@
     "newCustomer": "Nouveau client",
     "firstName": "Prénom",
     "lastName": "Nom",
+    "fullName": "Nom complet",
     "customerCreated": "Client créé",
     "customerDeleted": "Client supprimé",
     "customerHidden": "Client masqué",
@@ -881,7 +887,9 @@
     "noNotifications": "Aucune notification",
     "viewAll": "Voir toutes les notifications",
     "delete": "Supprimer",
-    "markAsRead": "Marquer comme lu"
+    "markAsRead": "Marquer comme lu",
+    "unread": "Non lue",
+    "read": "Lue"
   },
   "dashboard": {
     "title": "Hôtel de l'Avenue",

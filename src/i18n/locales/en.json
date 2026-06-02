@@ -1,5 +1,6 @@
 {
-  "common": {
+  "common": {    
+    "active": "Active",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -80,7 +81,8 @@
     "deleteConfirm": "Delete?",
     "itemDeleted": "Item deleted",
     "deleteError": "Delete error",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...", 
+    "optional": "Optional"
   },
   "login": {
     "hotelManagement": "Hotel Management System",
@@ -147,14 +149,6 @@
     "amenities": "Amenities",
     "capacity": "Capacity",
     "bedType": "Bed Type"
-  },
-  "hotel": {
-    "configuration": "Configuration",
-    "statusAvailable": "Available",
-    "statusOccupied": "Occupied",
-    "statusCleaning": "Cleaning",
-    "statusMaintenance": "Maintenance",
-    "statusOutOfOrder": "Out of order"
   },
   "hotelPlan": {
     "available": "Available",
@@ -364,7 +358,8 @@
     "hotel_reservations": "Hotel Reservations",
     "hotel_services": "Hotel Services",
     "lounge": "Lounge / Bar",
-    "casino": "Casino"
+    "casino": "Casino",
+    "total": "Total"
   },
   "export": {
     "title": "Export",
@@ -408,7 +403,9 @@
     "noNotifications": "No notifications",
     "viewAll": "View all notifications",
     "delete": "Delete",
-    "markAsRead": "Mark as read"
+    "markAsRead": "Mark as read",
+    "unread": "Unread",
+    "read": "Read"
   },
   "inventory": {
     "allStores": "All stores",
@@ -1171,7 +1168,8 @@
     "capacity": "Capacity",
     "bedType": "Bed Type"
   },
-  "hotel": {
+  "hotel": { 
+    "roomType": "Type de chambre",
     "configuration": "Hotel · Configuration",
     "available": "Available",
     "occupied": "Occupied",

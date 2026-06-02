@@ -156,7 +156,7 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium mb-2 block">{t('settings.language')}</label>
                   <div className="flex items-center gap-1 border rounded-lg p-0.5">
                     <Button
@@ -176,7 +176,7 @@ export default function Settings() {
                       🇬🇧 EN
                     </Button>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </div>

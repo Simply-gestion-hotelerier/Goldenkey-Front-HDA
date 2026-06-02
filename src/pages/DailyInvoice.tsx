@@ -134,6 +134,8 @@ export default function DailyInvoice() {
     enabled: dept !== "hotel_reservations",
   });
 
+  console.log("Sale Data:", saleData);
+
   const { data: hotelData = { reservations: [], total: 0, occupancyRate: 0, arrivals: 0, departures: 0, inHouse: 0 } } = useQuery<HotelData>({
     queryKey: ["report", "daily", "hotel", date],
     queryFn: () => api.get<HotelData>(`/reports/daily?dept=hotel_reservations&date=${date}`),
