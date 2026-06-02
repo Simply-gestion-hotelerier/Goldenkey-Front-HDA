@@ -52,7 +52,7 @@ type PaymentDetail = {
   id: number;
   method: string;
   amount: number;
-  receivedAmount: number;
+  receivedAmount: number | null;
   change: number;
   receivedAt: string;
   operatorName: string | null;
@@ -271,7 +271,7 @@ export default function DailyInvoice() {
           } else {
             for (const p of o.payments) {
               const op = operatorLabel(p);
-              const receivedDisplay = p.receivedAmount !== p.amount ? `${fmt(convert(p.receivedAmount))} ${currency}` : "—";
+              const receivedDisplay = p.receivedAmount != null ? `${fmt(convert(p.receivedAmount))} ${currency}` : "—";
               const changeDisplay = p.change > 0 ? `${fmt(convert(p.change))} ${currency}` : "—";
 
               rows += `<tr style="background:#eff6ff50;border-bottom:1px solid #f3f4f6">
@@ -371,7 +371,7 @@ export default function DailyInvoice() {
               const dateStr = new Date(p.receivedAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
               const op = operatorLabel(p);
               lines80.push(padLine(`  [${method}] ${dateStr}`, `${fmt(convert(p.amount))} ${currency}`, W));
-              if (p.receivedAmount !== p.amount) lines80.push(padLine(`    ${t('dailyInvoice.amountReceived')}:`, `${fmt(convert(p.receivedAmount))} ${currency}`, W));
+              if (p.receivedAmount != null) lines80.push(padLine(`    ${t('dailyInvoice.amountReceived')}:`, `${fmt(convert(p.receivedAmount))} ${currency}`, W));
               if (p.change > 0) lines80.push(padLine(`    ${t('dailyInvoice.changeGiven')}:`, `${fmt(convert(p.change))} ${currency}`, W));
               if (op) lines80.push(`    ${t('dailyInvoice.operator')}: ${op.substring(0, 20)}`);
             });
@@ -484,9 +484,9 @@ export default function DailyInvoice() {
             {order.lines.map((l, li) => (<tr key={li} className="border-b border-border/50"><td className="p-2 pl-8">{l.itemName}</td><td className="p-2 text-center">{l.qty}</td><td className="p-2 text-right text-muted-foreground">{fmt(convert(l.unitPrice))} {currency}</td><td className="p-2 text-right font-medium">{fmt(convert(l.total))} {currency}</td><td colSpan={5} /></tr>))}
             {order.discountAmount > 0 && (<tr className="border-b border-amber-200 bg-amber-50/40"><td className="p-1.5 pl-8 text-amber-700 text-xs italic">🏷 {t('dailyInvoice.discount')}{order.discountType === "percent" ? ` (${Math.round((order.discountAmount / order.subtotal) * 100)}%)` : ` (${t('dailyInvoice.fixedDiscount')})`}{order.discountReason ? ` — ${order.discountReason}` : ""}</td><td colSpan={2} className="p-1.5 text-right text-xs text-amber-600">− {fmt(convert(order.discountAmount))} {currency}</td><td className="p-1.5 text-right font-semibold text-sm text-amber-700">= {fmt(convert(order.orderTotal))} {currency}</td><td colSpan={5} /></tr>)}
             <tr className="bg-muted/10 border-b border-dashed border-border"><td colSpan={3} className="p-1.5 pl-8 text-right text-xs text-muted-foreground italic">{t('dailyInvoice.subtotal')} #{order.id}</td><td className="p-1.5 text-right font-semibold text-sm">{fmt(convert(order.subtotal))} {currency}</td><td colSpan={5} /></tr>
-            {order.payments.length === 0 ? <tr><td colSpan={4} /><td colSpan={5} className="p-2 pr-4 text-xs text-muted-foreground italic">{t('dailyInvoice.noPayments')}</td></tr> : order.payments.map((p, pi) => (<tr key={pi} className="border-b border-border/30 bg-blue-50/30"><td colSpan={4} /><td className="p-2 text-xs text-muted-foreground">{fmtDate(p.receivedAt)}</td><td className="p-2"><span className="inline-flex items-center gap-1 text-xs font-medium bg-muted/50 px-2 py-0.5 rounded-full">{METHOD_ICON[p.method]} {getMethodLabel(p.method)}</span></td><td className="p-2 text-right text-xs">{p.receivedAmount !== p.amount ? <span className="font-semibold">{fmt(convert(p.receivedAmount))} {currency}</span> : <span className="text-muted-foreground">—</span>}</td><td className="p-2 text-right text-xs">{p.change > 0 ? <span className="font-semibold text-green-700">{fmt(convert(p.change))} {currency}</span> : <span className="text-muted-foreground">—</span>}</td><td className="p-2 pr-4 text-xs">{operatorLabel(p) ? <span className="inline-flex items-center gap-1 bg-violet-100 text-violet-800 px-2 py-0.5 rounded-full font-medium">👤 {operatorLabel(p)}</span> : <span className="text-muted-foreground">—</span>}</td></tr>))}
+            {order.payments.length === 0 ? <tr><td colSpan={4} /><td colSpan={5} className="p-2 pr-4 text-xs text-muted-foreground italic">{t('dailyInvoice.noPayments')}</td></tr> : order.payments.map((p, pi) => (<tr key={pi} className="border-b border-border/30 bg-blue-50/30"><td colSpan={4} /><td className="p-2 text-xs text-muted-foreground">{fmtDate(p.receivedAt)}</td><td className="p-2"><span className="inline-flex items-center gap-1 text-xs font-medium bg-muted/50 px-2 py-0.5 rounded-full">{METHOD_ICON[p.method]} {getMethodLabel(p.method)}</span></td><td className="p-2 text-right text-xs">{p.receivedAmount != null ? <span className="font-semibold">{fmt(convert(p.receivedAmount))} {currency}</span> : <span className="text-muted-foreground">—</span>}</td><td className="p-2 text-right text-xs">{p.change > 0 ? <span className="font-semibold text-green-700">{fmt(convert(p.change))} {currency}</span> : <span className="text-muted-foreground">—</span>}</td><td className="p-2 pr-4 text-xs">{operatorLabel(p) ? <span className="inline-flex items-center gap-1 bg-violet-100 text-violet-800 px-2 py-0.5 rounded-full font-medium">👤 {operatorLabel(p)}</span> : <span className="text-muted-foreground">—</span>}</td></tr>))}
             </React.Fragment>))}</tbody>
-            <tfoot><tr className="border-t-2 border-foreground bg-muted/40"><td colSpan={3} className="p-3 pl-4 text-right font-semibold">{t('dailyInvoice.dailyTotal')}</td><td className="p-3 text-right font-bold text-base">{fmt(convert(total))} {currency}</td><td colSpan={2} /><td className="p-3 text-right font-bold text-base">{fmt(convert(ordersDetail.flatMap(o => o.payments).filter(p => p.receivedAmount > p.amount).reduce((s, p) => s + p.receivedAmount, 0)))} {currency}</td><td className="p-3 text-right font-bold text-base text-green-700">{fmt(convert(ordersDetail.flatMap(o => o.payments).reduce((s, p) => s + p.change, 0)))} {currency}</td><td /></tr></tfoot></table>}</div></CardContent></Card>
+            <tfoot><tr className="border-t-2 border-foreground bg-muted/40"><td colSpan={3} className="p-3 pl-4 text-right font-semibold">{t('dailyInvoice.dailyTotal')}</td><td className="p-3 text-right font-bold text-base">{fmt(convert(total))} {currency}</td><td colSpan={2} /><td className="p-3 text-right font-bold text-base">{fmt(convert(ordersDetail.flatMap(o => o.payments).filter(p => p.receivedAmount != null).reduce((s, p) => s + (p.receivedAmount ?? 0), 0)))} {currency}</td><td className="p-3 text-right font-bold text-base text-green-700">{fmt(convert(ordersDetail.flatMap(o => o.payments).reduce((s, p) => s + p.change, 0)))} {currency}</td><td /></tr></tfoot></table>}</div></CardContent></Card>
           )}
 
         </main>

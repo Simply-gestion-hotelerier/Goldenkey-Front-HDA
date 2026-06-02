@@ -609,13 +609,13 @@ ${t('inventory.reportGenerated')}
     setEditStockDialog(true);
 
     combinedEditForm.reset({
-      qty_on_hand: s.qty,
-      min_level: s.minQty || 0,
-      max_level: s.maxQty || 100,
+      qty_on_hand: Number(s.qty ?? s.qty_on_hand ?? 0),
+      min_level: Number(s.minQty ?? s.min_level ?? 0),
+      max_level: Number(s.maxQty ?? s.max_level ?? 100),
       name: s.item?.name || "",
-      cost_price: s.item?.costPrice || 0,
-      sale_price_default: s.item?.salePriceDefault || 0,
-      vat_rate: s.item?.vatRate || 20,
+      cost_price: Number(s.item?.costPrice ?? 0),
+      sale_price_default: Number(s.item?.salePriceDefault ?? 0),
+      vat_rate: Number(s.item?.vatRate ?? 20),
       is_active: s.item?.isActive !== false,
       sku: s.item?.sku || "",
       unit: s.item?.unit || "piece",
@@ -1126,7 +1126,7 @@ ${t('inventory.reportGenerated')}
                               <FormField control={combinedEditForm.control} name="cost_price" render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>{t('inventory.costPrice')}</FormLabel>
-                                  <FormControl><Input type="number" min="0" step="0.01" {...field} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                  <FormControl><Input type="number" min="0" step="0.01" value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )} />
@@ -1134,7 +1134,7 @@ ${t('inventory.reportGenerated')}
                               <FormField control={combinedEditForm.control} name="sale_price_default" render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>{t('inventory.salePrice')}</FormLabel>
-                                  <FormControl><Input type="number" min="0" step="0.01" {...field} onChange={(e) => field.onChange(Number(e.target.value))} /></FormControl>
+                                  <FormControl><Input type="number" min="0" step="0.01" value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )} />
