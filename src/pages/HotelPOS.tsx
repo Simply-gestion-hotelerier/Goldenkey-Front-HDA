@@ -626,9 +626,6 @@ export default function HotelPOS() {
     return map;
   }, [activeReservations]);
 
-  console.log("roomGuestMap", roomGuestMap);
-  console.log("activeReservations", activeReservations);
-
   useEffect(() => {
     if ((tables as any[]).length && !table) {
       // Pré-sélectionner depuis ?room=XX (lien depuis GuestInvoice)
