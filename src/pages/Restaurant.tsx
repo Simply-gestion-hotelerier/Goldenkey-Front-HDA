@@ -416,10 +416,8 @@ ${t('restaurant.reportGenerated')}
                   <ClipboardList className="mr-2 h-4 w-4" />
                   {t('restaurant.newOrder')}
                 </Button>
-                <Button className="w-full justify-start" variant="outline" onClick={()=>navigate('/restaurant/kds')}>
-                  <ChefHat className="mr-2 h-4 w-4" />
-                  {t('restaurant.kitchenView')}
-                </Button>
+          
+          
                 <Button className="w-full justify-start" variant="outline" onClick={()=>navigate('/inventory')}>
                   <Package className="mr-2 h-4 w-4" />
                   {t('restaurant.inventory')}
