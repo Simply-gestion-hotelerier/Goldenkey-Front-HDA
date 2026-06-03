@@ -488,12 +488,12 @@ function printA4(tableCode: string, order: any) {
     </table>
 
     <div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"};padding:16px;border-radius:8px;text-align:center;font-weight:700;font-size:14px;margin:16px 0;">
-      ${balance > 0 
-        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
-        : paid > total 
-          ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
-          : "✓ SOLDE PAYÉ"
-      }
+      ${balance > 0
+      ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+      : paid > total
+        ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
+        : "✓ SOLDE PAYÉ"
+    }
     </div>
 
     ${cardFeesSummaryBlock}
@@ -682,6 +682,12 @@ export default function HotelPOS() {
       setNewTableCode("");
       toast({ title: "Table / Chambre créée (hôtel)" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de créer la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const editTableMut = useMutation({
@@ -692,6 +698,12 @@ export default function HotelPOS() {
       setEditingTable(null);
       toast({ title: "Table / Chambre modifiée (hôtel)" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de modifier la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const removeTable = useMutation({
@@ -802,28 +814,72 @@ export default function HotelPOS() {
       toast({ title: "Erreur de clôture", description: String(e), variant: "destructive" }),
   });
 
+  // ✅ CORRECTION Bug 2 : receivedAmount toujours transmis explicitement
   const payOrder = useMutation({
-    mutationFn: (p: { orderId: number; amount: number; method: string; receivedAmount?: number }) =>
+    mutationFn: (p: {
+      orderId: number;
+      amount: number;
+      method: string;
+      receivedAmount: number;
+    }) =>
       api.post("/cash/payments", {
-        department: "hotel",
+        department: "restaurant",
         method: p.method,
         amount: p.amount,
-        receivedAmount: p.receivedAmount ?? null,
+        receivedAmount: p.receivedAmount,
         orderId: p.orderId,
       }),
     onSuccess: async (data: any, vars) => {
       const change = data?.context?.change ?? 0;
       toast({
         title: "Paiement enregistré",
-        description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
+        description: change > 0
+          ? `Monnaie à rendre : ${fmt(change)} Ar`
+          : "Paiement réussi",
       });
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
-      qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
     },
     onError: (e: any) =>
-      toast({ title: "Erreur de paiement", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+      toast({
+        title: "Erreur de paiement",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
+
+  // ✅ CORRECTION Bug 1 & 2 : handlePay corrigé
+  const handlePay = () => {
+    const amountReceived = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
+
+    if (!amountReceived || amountReceived <= 0) {
+      toast({
+        title: "Montant de paiement invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Carte  : on encaisse exactement le montant saisi (pas de monnaie, frais gérés par la banque)
+    // Autres : on encaisse au maximum le solde dû
+    //          → si le client donne plus → amount = solde, change calculé côté backend
+    //          → si le client donne moins → paiement partiel, amount = reçu
+    const amountToPost =
+      payMethod === "card"
+        ? amountReceived
+        : Math.min(amountReceived, currentBalance);
+
+    payOrder.mutate({
+      orderId: selectedOrder.id,
+      amount: amountToPost,
+      method: payMethod,
+      receivedAmount: amountReceived, // ✅ toujours le montant physique reçu du client
+    });
+  };
+
 
   const applyDiscount = useMutation({
     mutationFn: (p: { orderId: number; discountAmount: number; discountType: string; discountReason: string }) =>
@@ -957,28 +1013,7 @@ export default function HotelPOS() {
 
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
-
-  // CORRECTION: handlePay modifié pour permettre les paiements partiels (comme les autres POS)
-  const handlePay = () => {
-    const amountToCollect = Number(receivedAmount);
-    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
-
-    if (!amountToCollect || amountToCollect <= 0) {
-      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
-      return;
-    }
-
-    // Pas de vérification si le montant est inférieur au solde
-    // On collecte exactement ce que le client donne
-    // La facture gérera l'affichage du reste à payer ou du crédit
-    payOrder.mutate({
-      orderId: selectedOrder.id,
-      amount: currentBalance,
-      method: payMethod,
-      receivedAmount: amountToCollect,
-    });
-  };
-
+  
   const handleApplyDiscount = () => {
     if (discountInput === "" || Number(discountInput) < 0) {
       toast({ title: "Veuillez entrer une remise valide", variant: "destructive" });
@@ -1359,6 +1394,7 @@ export default function HotelPOS() {
                                   <Button size="sm" variant="ghost" title="Ticket 80mm" onClick={() => print80mm(table!, order)}>
                                     <Printer className="h-4 w-4" />
                                   </Button>
+
                                   {order.status === "open" && (
                                     <Button size="sm" disabled={!allDelivered(order.lines ?? [])} onClick={() => closeOrder.mutate(order.id)}>
                                       {closeOrder.isPending ? "…" : "Fermer"}
@@ -1374,6 +1410,51 @@ export default function HotelPOS() {
                                   Tous les articles n'ont pas encore été livrés
                                 </div>
                               )}
+                              {(() => {
+                                const guest = selectedOrder?.table?.code
+                                  ? roomGuestMap.get(selectedOrder.table.code)
+                                  : null;
+                                if (!guest?.folioId) return null;
+
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-blue-400 text-blue-700 hover:bg-blue-50"
+                                    disabled={
+                                      selectedOrder.status === "cancelled" ||
+                                      (selectedOrder.payments ?? []).some((p: any) => p.folioId === guest.folioId)
+                                    }
+                                    title={
+                                      (selectedOrder.payments ?? []).some((p: any) => p.folioId === guest.folioId)
+                                        ? "Déjà imputée sur ce folio"
+                                        : `Imputer sur le folio de ${guest.guestName}`
+                                    }
+                                    onClick={async () => {
+                                      if (!confirm(`Imputer la commande sur le folio de ${guest.guestName} ?`)) return;
+                                      try {
+                                        await api.post(`/hotel/folios/${guest.folioId}/post-order`, {
+                                          orderId: selectedOrder.id,
+                                          department: "hotel",
+                                        });
+                                        toast({ title: "✅ Commande imputée sur le folio" });
+                                        await refreshSelectedOrder(selectedOrder.id);
+                                        qc.invalidateQueries({ queryKey: ["orders", "hotel"] });
+                                        setDetailsOpen(false);
+                                      } catch (e: any) {
+                                        toast({
+                                          title: "Erreur d'imputation",
+                                          description: e.response?.data?.error ?? String(e),
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <HotelIcon className="h-4 w-4 mr-1" />
+                                    Imputer au folio
+                                  </Button>
+                                );
+                              })()}
                             </div>
                           );
                         })
@@ -1800,7 +1881,7 @@ export default function HotelPOS() {
                         {/* Message de paiement partiel */}
                         {Number(receivedAmount) < bal && (
                           <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
-                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar.
                             Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
                           </div>
                         )}

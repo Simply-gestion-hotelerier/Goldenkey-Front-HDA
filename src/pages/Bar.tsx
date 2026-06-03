@@ -350,9 +350,6 @@ const Bar = () => {
                 <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/inventory")}>
                   <Package className="mr-2 h-4 w-4" /> Inventaire
                 </Button>
-                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/cash")}>
-                  <DollarSign className="mr-2 h-4 w-4" /> Caisse
-                </Button>
               </CardContent>
             </Card>
 

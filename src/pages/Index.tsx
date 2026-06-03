@@ -7,8 +7,8 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import {
-  Users, DollarSign, TrendingUp, Clock, Utensils, Bed, Wine, Sparkles,
-  Download, ChevronDown, FileText, Table, FileCode, FileSpreadsheet
+  Users, DollarSign, TrendingUp, Clock, Utensils, Bed, Wine, Dices,
+  Download, ChevronDown, FileText, Table, FileCode, FileSpreadsheet, Hotel
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/rbac";
@@ -27,15 +27,12 @@ const Index = () => {
   const [isExporting, setIsExporting] = useState(false);
   const { user, hasScopes } = useAuth();
 
-  const scopes: string[] = (user as any)?.scopes ?? [];
-
   const canReadRooms = hasScopes("rooms:read");
   const canReadReservations = hasScopes("reservations:read");
   const canReadReports = hasScopes("reports:read");
   const canReadOrders = hasScopes("orders:read");
-  const canReadSpa = hasScopes("spa:read");
-  const canReadInventory = hasScopes("inventory:read");
 
+  // Rooms & Reservations
   const { data: rooms = [] } = useQuery({
     queryKey: ["hotel", "rooms"],
     queryFn: () => api.get<any[]>("/hotelrooms/rooms"),
@@ -54,6 +51,7 @@ const Index = () => {
     staleTime: 5000,
   });
 
+  // Revenue
   const { data: revenueTotal = 0 } = useQuery({
     queryKey: ["reports", "daily-total", today],
     queryFn: async () => {
@@ -69,95 +67,195 @@ const Index = () => {
     staleTime: 10000,
   });
 
-  const { data: ordersOpen = [] } = useQuery({
+  // Restaurant
+  const { data: restaurantOrdersOpen = [] } = useQuery({
     queryKey: ["restaurant", "orders", "open"],
-    queryFn: () => api.get<any[]>(`/restaurant/orders?status=open`),
+    queryFn: () => api.get<any[]>("/restaurant/orders?dept=restaurant&status=open"),
     enabled: canReadOrders,
     refetchInterval: canReadOrders ? 5000 : false,
     refetchOnWindowFocus: canReadOrders,
     staleTime: 2000,
   });
-
-  const { data: tables = [] } = useQuery({
+  const { data: restaurantTables = [] } = useQuery({
     queryKey: ["restaurant", "tables"],
-    queryFn: () => api.get<any[]>(`/restaurant/tables`),
+    queryFn: () => api.get<any[]>("/restaurant/tables"),
     enabled: canReadOrders,
     refetchInterval: canReadOrders ? 60000 : false,
     refetchOnWindowFocus: canReadOrders,
     staleTime: 15000,
   });
 
-  const startOfDay = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-  const endOfDay = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1);
-
-  const { data: spaToday = [] } = useQuery({
-    queryKey: ["spa", "appointments", today],
-    queryFn: () => api.get<any[]>(`/spa/appointments?start=${startOfDay.toISOString()}&end=${endOfDay.toISOString()}`),
-    enabled: canReadSpa,
-    refetchInterval: canReadSpa ? 15000 : false,
-    refetchOnWindowFocus: canReadSpa,
-    staleTime: 7000,
+  // Bar / Lounge
+  const { data: barOrdersOpen = [] } = useQuery({
+    queryKey: ["lounge", "orders", "open"],
+    queryFn: () => api.get<any[]>("/bar/orders?status=open"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 5000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 2000,
+  });
+  const { data: barTables = [] } = useQuery({
+    queryKey: ["lounge", "tables"],
+    queryFn: () => api.get<any[]>("/bar/tables"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 60000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 15000,
   });
 
-  const occupiedRooms = rooms.filter((r: any) => r.status === "occupied").length;
+  // Casino
+  const { data: casinoOrdersOpen = [] } = useQuery({
+    queryKey: ["casino", "orders", "open"],
+    queryFn: () => api.get<any[]>("/casino/orders?status=open"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 5000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 2000,
+  });
+  const { data: casinoTables = [] } = useQuery({
+    queryKey: ["casino", "tables"],
+    queryFn: () => api.get<any[]>("/casino/tables"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 60000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 15000,
+  });
+
+  // === CORRECTION: Room Service (commandes en chambre) avec les bonnes routes ===
+  const { data: roomServiceOrdersOpen = [] } = useQuery({
+    queryKey: ["hotel", "orders", "open"],
+    queryFn: () => api.get<any[]>("/hotel/orders?status=open"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 5000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 2000,
+  });
+
+  const { data: roomServiceAllOrders = [] } = useQuery({
+    queryKey: ["hotel", "orders", "all"],
+    queryFn: () => api.get<any[]>("/hotel/orders"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 30000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 10000,
+  });
+
+  const { data: tablesOpenRoomService = [] } = useQuery({
+      queryKey: ["hotel", "tables"],
+      queryFn: () => api.get<any[]>("/hotel/tables"),
+    });
+
+  const { data: roomServiceTables = [] } = useQuery({
+    queryKey: ["hotel", "tables"],
+    queryFn: () => api.get<any[]>("/hotel/tables"),
+    enabled: canReadOrders,
+    refetchInterval: canReadOrders ? 60000 : false,
+    refetchOnWindowFocus: canReadOrders,
+    staleTime: 15000,
+  });
+
+  // Chambres avec room service actif (une commande ouverte par chambre)
+  // On suppose que chaque commande contient un champ `roomNumber` ou `table.code` pour identifier la chambre
+  const roomsWithActiveRoomService = new Set(
+    (roomServiceOrdersOpen as any[]).map((o: any) => o.roomNumber || o.table?.code).filter(Boolean)
+  ).size;
+
+  
   const totalRooms = rooms.length;
+
+  const totalRoomsWithRoomService = (tablesOpenRoomService as any[]).length; //Le nombre de tables dans Hotel room service, qui correspond au nombre de chambres pouvant avoir du room service actif.
+
+  // Computed stats
+  const occupiedRooms = rooms.filter((r: any) => r.status === "occupied").length;
   const occupancyRate = totalRooms ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
   const presentGuests = reservations.filter((r: any) => r.status === "checked_in").length;
-  const openOrdersCount = ordersOpen.length;
-  const totalTablesRestaurant = tables.filter((t: any) => t.department === "restaurant").length;
-  const usedTablesRestaurant = new Set(ordersOpen.filter((o: any) => o.dept === "restaurant" && o.tableId).map((o: any) => o.tableId)).size;
-  const totalTablesPub = tables.filter((t: any) => t.department === "pub").length;
-  const usedTablesPub = new Set(ordersOpen.filter((o: any) => o.dept === "pub" && o.tableId).map((o: any) => o.tableId)).size;
+
+  const usedTablesRestaurant = new Set(
+    (restaurantOrdersOpen as any[]).map((o: any) => o.table?.code).filter(Boolean)
+  ).size;
+  const totalTablesRestaurant = (restaurantTables as any[]).length;
+
+  const usedTablesBar = new Set(
+    (barOrdersOpen as any[]).map((o: any) => o.table?.code).filter(Boolean)
+  ).size;
+  const totalTablesBar = (barTables as any[]).length;
+
+  const usedTablesCasino = new Set(
+    (casinoOrdersOpen as any[]).map((o: any) => o.table?.code).filter(Boolean)
+  ).size;
+  const totalTablesCasino = (casinoTables as any[]).length;
+
+  const openOrdersCount =
+    restaurantOrdersOpen.length + barOrdersOpen.length + casinoOrdersOpen.length + roomServiceOrdersOpen.length;
 
   const formatAr = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} Ar`;
 
+  // Export
   const exportOptions = [
-    { format: "excel", label: t('export.excel'), extension: ".xlsx", icon: FileSpreadsheet, color: "text-green-600", bgColor: "bg-green-50", hoverColor: "hover:bg-green-100", description: t('export.excel') },
-    { format: "csv", label: t('export.csv'), extension: ".csv", icon: Table, color: "text-blue-600", bgColor: "bg-blue-50", hoverColor: "hover:bg-blue-100", description: t('export.csv') },
-    { format: "txt", label: t('export.txt'), extension: ".txt", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-50", hoverColor: "hover:bg-purple-100", description: t('export.txt') },
-    { format: "json", label: t('export.json'), extension: ".json", icon: FileCode, color: "text-orange-600", bgColor: "bg-orange-50", hoverColor: "hover:bg-orange-100", description: t('export.json') },
+    { format: "excel", label: t('export.excel'), extension: ".xlsx", icon: FileSpreadsheet, color: "text-green-600", bgColor: "bg-green-50", hoverColor: "hover:bg-green-100" },
+    { format: "csv",   label: t('export.csv'),   extension: ".csv",  icon: Table,           color: "text-blue-600",  bgColor: "bg-blue-50",  hoverColor: "hover:bg-blue-100" },
+    { format: "txt",   label: t('export.txt'),   extension: ".txt",  icon: FileText,        color: "text-purple-600",bgColor: "bg-purple-50",hoverColor: "hover:bg-purple-100" },
+    { format: "json",  label: t('export.json'),  extension: ".json", icon: FileCode,        color: "text-orange-600",bgColor: "bg-orange-50",hoverColor: "hover:bg-orange-100" },
   ];
 
   const prepareExportData = () => ({
     metadata: {
-      hotelName: "Hôtel de l'Avenue<",
+      hotelName: "Hôtel de l'Avenue",
       exportDate: new Date().toLocaleString("fr-FR"),
       periode: today,
       generatedBy: (user as any)?.name || (user as any)?.email || "Utilisateur",
     },
     statistiques: {
-      presentGuests, revenueTotal,
+      presentGuests,
+      revenueTotal,
       revenueTotalFormatted: formatAr(revenueTotal),
-      occupancyRate, openOrdersCount, occupiedRooms, totalRooms,
-      usedTablesRestaurant, totalTablesRestaurant,
-      usedTablesPub, totalTablesPub,
-      spaAppointments: spaToday.length,
+      occupancyRate,
+      openOrdersCount,
+      occupiedRooms,
+      totalRooms,
+      usedTablesRestaurant,
+      totalTablesRestaurant,
+      usedTablesBar,
+      totalTablesBar,
+      usedTablesCasino,
+      totalTablesCasino,
+      roomsWithActiveRoomService,
+      totalRoomsWithRoomService,
+      roomServiceOrdersCount: roomServiceOrdersOpen.length,
     },
   });
 
   const exportToCSV = (data: any) => {
     let csv = "\uFEFF";
-    csv += `DASHBOARD - Hôtel de l'Avenue\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`;
-    csv += "Indicator,Value\n";
+    csv += `DASHBOARD - Hôtel de l'Avenue\nPeriode: ${data.metadata.periode}\nExporte: ${data.metadata.exportDate}\n\n`;
+    csv += "Indicateur,Valeur\n";
     csv += `${t('dashboard.presentGuests')},${data.statistiques.presentGuests}\n`;
     csv += `${t('dashboard.dailyRevenue')},${data.statistiques.revenueTotal}\n`;
     csv += `${t('dashboard.occupancyRate')},${data.statistiques.occupancyRate}%\n`;
     csv += `${t('dashboard.activeOrders')},${data.statistiques.openOrdersCount}\n`;
+    csv += `${t('dashboard.occupiedRooms')},${data.statistiques.occupiedRooms}/${data.statistiques.totalRooms}\n`;
+    csv += `${t('dashboard.restaurantTables')},${data.statistiques.usedTablesRestaurant}/${data.statistiques.totalTablesRestaurant}\n`;
+    csv += `${t('dashboard.barTables')},${data.statistiques.usedTablesBar}/${data.statistiques.totalTablesBar}\n`;
+    csv += `${t('dashboard.casinoTables')},${data.statistiques.usedTablesCasino}/${data.statistiques.totalTablesCasino}\n`;
+    csv += `${t('dashboard.roomServiceActive')},${data.statistiques.roomsWithActiveRoomService}/${data.statistiques.totalRoomsWithRoomService}\n`;
+    csv += `${t('dashboard.roomServiceOrders')},${data.statistiques.roomServiceOrdersCount}\n`;
     saveAs(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `dashboard-${today}.csv`);
   };
 
   const exportToExcel = (data: any) => {
     const wb = XLSX.utils.book_new();
     const rows = [
-      ["Indicator", "Value"],
-      [t('dashboard.presentGuests'), data.statistiques.presentGuests],
-      [t('dashboard.dailyRevenue'), data.statistiques.revenueTotal],
-      [t('dashboard.occupancyRate'), `${data.statistiques.occupancyRate}%`],
-      [t('dashboard.activeOrders'), data.statistiques.openOrdersCount],
-      [t('dashboard.occupiedRooms'), `${data.statistiques.occupiedRooms}/${data.statistiques.totalRooms}`],
+      ["Indicateur", "Valeur"],
+      [t('dashboard.presentGuests'),    data.statistiques.presentGuests],
+      [t('dashboard.dailyRevenue'),     data.statistiques.revenueTotal],
+      [t('dashboard.occupancyRate'),    `${data.statistiques.occupancyRate}%`],
+      [t('dashboard.activeOrders'),     data.statistiques.openOrdersCount],
+      [t('dashboard.occupiedRooms'),    `${data.statistiques.occupiedRooms}/${data.statistiques.totalRooms}`],
       [t('dashboard.restaurantTables'), `${data.statistiques.usedTablesRestaurant}/${data.statistiques.totalTablesRestaurant}`],
-      [t('dashboard.barTables'), `${data.statistiques.usedTablesPub}/${data.statistiques.totalTablesPub}`],
-      [t('dashboard.spaAppointments'), data.statistiques.spaAppointments],
+      [t('dashboard.barTables'),        `${data.statistiques.usedTablesBar}/${data.statistiques.totalTablesBar}`],
+      [t('dashboard.casinoTables'),     `${data.statistiques.usedTablesCasino}/${data.statistiques.totalTablesCasino}`],
+      [t('dashboard.roomServiceActive'),`${data.statistiques.roomsWithActiveRoomService}/${data.statistiques.totalRoomsWithRoomService}`],
+      [t('dashboard.roomServiceOrders'), data.statistiques.roomServiceOrdersCount],
     ];
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws["!cols"] = [{ wch: 25 }, { wch: 20 }];
@@ -167,16 +265,27 @@ const Index = () => {
   };
 
   const exportToTXT = (data: any) => {
-    const txt = `DASHBOARD - Hôtel de l'Avenue\n${"=".repeat(40)}\nPeriod: ${data.metadata.periode}\nExported: ${data.metadata.exportDate}\n\n`
-      + `${t('dashboard.presentGuests')}: ${data.statistiques.presentGuests}\n`
-      + `${t('dashboard.dailyRevenue')}: ${data.statistiques.revenueTotalFormatted}\n`
-      + `${t('dashboard.occupancyRate')}: ${data.statistiques.occupancyRate}%\n`
-      + `${t('dashboard.activeOrders')}: ${data.statistiques.openOrdersCount}\n`;
+    const txt =
+      `DASHBOARD - Hôtel de l'Avenue\n${"=".repeat(40)}\n` +
+      `Periode: ${data.metadata.periode}\nExporte: ${data.metadata.exportDate}\n\n` +
+      `${t('dashboard.presentGuests')}: ${data.statistiques.presentGuests}\n` +
+      `${t('dashboard.dailyRevenue')}: ${data.statistiques.revenueTotalFormatted}\n` +
+      `${t('dashboard.occupancyRate')}: ${data.statistiques.occupancyRate}%\n` +
+      `${t('dashboard.activeOrders')}: ${data.statistiques.openOrdersCount}\n` +
+      `${t('dashboard.occupiedRooms')}: ${data.statistiques.occupiedRooms}/${data.statistiques.totalRooms}\n` +
+      `${t('dashboard.restaurantTables')}: ${data.statistiques.usedTablesRestaurant}/${data.statistiques.totalTablesRestaurant}\n` +
+      `${t('dashboard.barTables')}: ${data.statistiques.usedTablesBar}/${data.statistiques.totalTablesBar}\n` +
+      `${t('dashboard.casinoTables')}: ${data.statistiques.usedTablesCasino}/${data.statistiques.totalTablesCasino}\n` +
+      `${t('dashboard.roomServiceActive')}: ${data.statistiques.roomsWithActiveRoomService}/${data.statistiques.totalRoomsWithRoomService}\n` +
+      `${t('dashboard.roomServiceOrders')}: ${data.statistiques.roomServiceOrdersCount}\n`;
     saveAs(new Blob([txt], { type: "text/plain;charset=utf-8" }), `dashboard-${today}.txt`);
   };
 
   const exportToJSON = (data: any) => {
-    saveAs(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), `dashboard-${today}.json`);
+    saveAs(
+      new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }),
+      `dashboard-${today}.json`
+    );
   };
 
   const exportData = async (format: string) => {
@@ -184,10 +293,10 @@ const Index = () => {
     setIsExportOpen(false);
     try {
       const data = prepareExportData();
-      if (format === "csv") exportToCSV(data);
+      if (format === "csv")   exportToCSV(data);
       if (format === "excel") exportToExcel(data);
-      if (format === "txt") exportToTXT(data);
-      if (format === "json") exportToJSON(data);
+      if (format === "txt")   exportToTXT(data);
+      if (format === "json")  exportToJSON(data);
     } catch (e) {
       console.error("Export error:", e);
     } finally {
@@ -195,7 +304,9 @@ const Index = () => {
     }
   };
 
-  const isAdminOrManager = ["ADMIN", "MANAGER", "admin", "manager", "compta", "COMPTA"].includes((user as any)?.role ?? "");
+  const isAdminOrManager = ["ADMIN", "MANAGER", "admin", "manager", "compta", "COMPTA"].includes(
+    (user as any)?.role ?? ""
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -203,26 +314,46 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-auto p-4 md:p-6">
+
+          {/* Title + Export */}
           <div className="flex justify-between items-start mb-6 md:mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">{t('dashboard.title')}</h1>
-              <p className="text-sm md:text-base text-muted-foreground">{t('dashboard.subtitle')} • {t('dashboard.overview')}</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                {t('dashboard.title')}
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                {t('dashboard.subtitle')} • {t('dashboard.overview')}
+              </p>
             </div>
+
             {isAdminOrManager && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/reports")}>
+              <div className="relative flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => navigate("/reports")}
+                >
                   <TrendingUp className="w-4 h-4" />
                   <span>{t('dashboard.reportAndAnalysis')}</span>
                 </Button>
+
                 <button
                   onClick={() => setIsExportOpen(!isExportOpen)}
                   disabled={isExporting}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg transition-all shadow-lg font-semibold group"
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg transition-all shadow-lg font-semibold"
                 >
                   {isExporting ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>{t('export.exporting')}</span></>
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>{t('export.exporting')}</span>
+                    </>
                   ) : (
-                    <><Download className="w-4 h-4" /><span>{t('common.export')}</span><ChevronDown className="w-4 h-4" /></>
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>{t('common.export')}</span>
+                      <ChevronDown className="w-4 h-4" />
+                    </>
                   )}
                 </button>
 
@@ -241,8 +372,9 @@ const Index = () => {
                           <opt.icon className={`w-5 h-5 ${opt.color}`} />
                           <div>
                             <span className="font-semibold text-gray-900 text-sm">{opt.label}</span>
-                            <span className="ml-2 text-xs font-mono bg-gray-100 text-gray-500 px-1 rounded">{opt.extension}</span>
-                            <p className="text-xs text-gray-500">{opt.description}</p>
+                            <span className="ml-2 text-xs font-mono bg-gray-100 text-gray-500 px-1 rounded">
+                              {opt.extension}
+                            </span>
                           </div>
                         </button>
                       ))}
@@ -253,26 +385,76 @@ const Index = () => {
             )}
           </div>
 
+          {/* Row 1 — KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-            <StatCard title={t('dashboard.presentGuests')} value={canReadReservations ? presentGuests : "—"} icon={Users} variant="default" />
+            <StatCard
+              title={t('dashboard.presentGuests')}
+              value={canReadReservations ? presentGuests : "—"}
+              icon={Users}
+              variant="default"
+            />
             {canReadReports && (
-              <StatCard title={t('dashboard.dailyRevenue')} value={formatAr(revenueTotal)} icon={DollarSign} variant="gold" />
+              <StatCard
+                title={t('dashboard.dailyRevenue')}
+                value={formatAr(revenueTotal)}
+                icon={DollarSign}
+                variant="gold"
+              />
             )}
-            <StatCard title={t('dashboard.occupancyRate')} value={canReadRooms ? `${occupancyRate}%` : "—"} icon={TrendingUp} variant="success" />
-            <StatCard title={t('dashboard.activeOrders')} value={canReadOrders ? openOrdersCount : "—"} icon={Clock} variant="warning" />
+            <StatCard
+              title={t('dashboard.occupancyRate')}
+              value={canReadRooms ? `${occupancyRate}%` : "—"}
+              icon={TrendingUp}
+              variant="success"
+            />
+            <StatCard
+              title={t('dashboard.activeOrders')}
+              value={canReadOrders ? openOrdersCount : "—"}
+              icon={Clock}
+              variant="warning"
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-            <StatCard title={t('dashboard.occupiedRooms')} value={canReadRooms ? `${occupiedRooms}/${totalRooms}` : "—"} icon={Bed} variant="default" />
-            <StatCard title={t('dashboard.restaurantTables')} value={canReadOrders ? `${usedTablesRestaurant}/${totalTablesRestaurant}` : "—"} icon={Utensils} variant="default" />
-            <StatCard title={t('dashboard.barTables')} value={canReadOrders ? `${usedTablesPub}/${totalTablesPub}` : "—"} icon={Wine} variant="default" />
-            <StatCard title={t('dashboard.spaAppointments')} value={canReadSpa ? spaToday.length : "—"} icon={Sparkles} variant="default" />
+          {/* Row 2 — Tables & Rooms (avec Room Service) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6">
+            <StatCard
+              title={t('dashboard.occupiedRooms')}
+              value={canReadRooms ? `${occupiedRooms}/${totalRooms}` : "—"}
+              icon={Bed}
+              variant="default"
+            />
+            <StatCard
+              title={t('dashboard.roomServiceActive')}
+              value={canReadOrders ? `${roomsWithActiveRoomService}/${totalRoomsWithRoomService}` : "—"}
+              icon={Hotel}
+              variant="default"
+            />
+            <StatCard
+              title={t('dashboard.restaurantTables')}
+              value={canReadOrders ? `${usedTablesRestaurant}/${totalTablesRestaurant}` : "—"}
+              icon={Utensils}
+              variant="default"
+            />
+            <StatCard
+              title={t('dashboard.barTables')}
+              value={canReadOrders ? `${usedTablesBar}/${totalTablesBar}` : "—"}
+              icon={Wine}
+              variant="default"
+            />
+            <StatCard
+              title={t('dashboard.casinoTables')}
+              value={canReadOrders ? `${usedTablesCasino}/${totalTablesCasino}` : "—"}
+              icon={Dices}
+              variant="default"
+            />
           </div>
 
+          {/* Row 3 — Quick actions & Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <QuickActions />
             <RecentActivity />
           </div>
+
         </main>
       </div>
     </div>

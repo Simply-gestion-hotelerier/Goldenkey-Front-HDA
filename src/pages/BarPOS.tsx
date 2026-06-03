@@ -479,12 +479,12 @@ function printA4(tableCode: string, order: any) {
     </table>
 
     <div class="balance" style="background:${balance > 0 ? "#fee2e2" : paid > total ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : paid > total ? "#92400e" : "#065f46"}">
-      ${balance > 0 
-        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
-        : paid > total 
-          ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar (à déduire sur prochaine commande)`
-          : "✓ SOLDE PAYÉ"
-      }
+      ${balance > 0
+      ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+      : paid > total
+        ? `💰 CRÉDIT CLIENT : ${fmt(paid - total)} Ar (à déduire sur prochaine commande)`
+        : "✓ SOLDE PAYÉ"
+    }
     </div>
 
     ${cardFeesSummaryBlock}
@@ -645,6 +645,12 @@ export default function BarPOS() {
       setNewTableCode("");
       toast({ title: "Table créée (bar)" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de créer la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const editTableMut = useMutation({
@@ -655,6 +661,12 @@ export default function BarPOS() {
       setEditingTable(null);
       toast({ title: "Table modifiée (bar)" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de modifier la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const removeTable = useMutation({
@@ -765,28 +777,71 @@ export default function BarPOS() {
       toast({ title: "Erreur de clôture", description: String(e), variant: "destructive" }),
   });
 
+  // ✅ CORRECTION Bug 2 : receivedAmount toujours transmis explicitement
   const payOrder = useMutation({
-    mutationFn: (p: { orderId: number; amount: number; method: string; receivedAmount?: number }) =>
+    mutationFn: (p: {
+      orderId: number;
+      amount: number;
+      method: string;
+      receivedAmount: number;
+    }) =>
       api.post("/cash/payments", {
-        department: "lounge",
+        department: "restaurant",
         method: p.method,
         amount: p.amount,
-        receivedAmount: p.receivedAmount ?? null,
+        receivedAmount: p.receivedAmount,
         orderId: p.orderId,
       }),
     onSuccess: async (data: any, vars) => {
       const change = data?.context?.change ?? 0;
       toast({
         title: "Paiement enregistré",
-        description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
+        description: change > 0
+          ? `Monnaie à rendre : ${fmt(change)} Ar`
+          : "Paiement réussi",
       });
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
-      qc.invalidateQueries({ queryKey: ["orders", "lounge"] });
+      qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
     },
     onError: (e: any) =>
-      toast({ title: "Erreur de paiement", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+      toast({
+        title: "Erreur de paiement",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
+
+  // ✅ CORRECTION Bug 1 & 2 : handlePay corrigé
+  const handlePay = () => {
+    const amountReceived = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
+
+    if (!amountReceived || amountReceived <= 0) {
+      toast({
+        title: "Montant de paiement invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Carte  : on encaisse exactement le montant saisi (pas de monnaie, frais gérés par la banque)
+    // Autres : on encaisse au maximum le solde dû
+    //          → si le client donne plus → amount = solde, change calculé côté backend
+    //          → si le client donne moins → paiement partiel, amount = reçu
+    const amountToPost =
+      payMethod === "card"
+        ? amountReceived
+        : Math.min(amountReceived, currentBalance);
+
+    payOrder.mutate({
+      orderId: selectedOrder.id,
+      amount: amountToPost,
+      method: payMethod,
+      receivedAmount: amountReceived, // ✅ toujours le montant physique reçu du client
+    });
+  };
 
   const applyDiscount = useMutation({
     mutationFn: (p: { orderId: number; discountAmount: number; discountType: string; discountReason: string }) =>
@@ -921,26 +976,6 @@ export default function BarPOS() {
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
 
-  // CORRECTION: handlePay modifié pour permettre les paiements partiels (comme CasinoPOS)
-  const handlePay = () => {
-    const amountToCollect = Number(receivedAmount);
-    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
-
-    if (!amountToCollect || amountToCollect <= 0) {
-      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
-      return;
-    }
-
-    // Pas de vérification si le montant est inférieur au solde
-    // On collecte exactement ce que le client donne
-    // La facture gérera l'affichage du reste à payer ou du crédit
-    payOrder.mutate({
-      orderId: selectedOrder.id,
-      amount: currentBalance,
-      method: payMethod,
-      receivedAmount: amountToCollect,
-    });
-  };
 
   const handleApplyDiscount = () => {
     if (discountInput === "" || Number(discountInput) < 0) {
@@ -1724,7 +1759,7 @@ export default function BarPOS() {
                         {/* Message de paiement partiel */}
                         {Number(receivedAmount) < bal && (
                           <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
-                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar.
                             Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
                           </div>
                         )}

@@ -85,7 +85,7 @@ const ROOM_TYPES = ["Simple", "Double", "Triple", "Familial", "Deluxe", "Suite"]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmtMGA  = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+const fmtMGA = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
 const fmtDate = (d: string) => format(new Date(d), "dd MMM yyyy", { locale: fr });
 const fmtShort = (d: string) => format(new Date(d), "dd MMM", { locale: fr });
 
@@ -110,27 +110,27 @@ const HOTEL = {
   name: "Hôtel de l'Avenue",
   address: "Antsirabe, Madagascar",
   phone: "+261 038 33 188 31",
-  
+
   nif: "000000001",
 };
 
 // ── Helpers impression ────────────────────────────────────────────────────────
-const W80   = 42;
-const sep80  = "=".repeat(W80);
+const W80 = 42;
+const sep80 = "=".repeat(W80);
 const dash80 = "-".repeat(W80);
-const ctr    = (s: string, w: number) => { const p = Math.max(0, w - s.length); return " ".repeat(Math.floor(p / 2)) + s; };
-const padL   = (lbl: string, val: string, w: number) => { const gap = Math.max(1, w - lbl.length - val.length); return lbl + " ".repeat(gap) + val; };
-const fmtAr  = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
-const esc    = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const ctr = (s: string, w: number) => { const p = Math.max(0, w - s.length); return " ".repeat(Math.floor(p / 2)) + s; };
+const padL = (lbl: string, val: string, w: number) => { const gap = Math.max(1, w - lbl.length - val.length); return lbl + " ".repeat(gap) + val; };
+const fmtAr = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // ── Facture 80 mm ─────────────────────────────────────────────────────────────
 function print80mm(r: Reservation, t: any) {
   const win = window.open("", "_blank"); if (!win) return;
-  const n     = countNights(r.checkIn, r.checkOut);
+  const n = countNights(r.checkIn, r.checkOut);
   const total = r.folio?.total ?? r.rate * n;
-  const paid  = (r.folio?.payments ?? []).reduce((s, p) => s + p.amount, 0);
+  const paid = (r.folio?.payments ?? []).reduce((s, p) => s + p.amount, 0);
   const balance = Math.max(0, total - paid);
-  const unit  = unitLabel(r.rateMode, t);
+  const unit = unitLabel(r.rateMode, t);
 
   const lines: string[] = [
     ctr(HOTEL.name, W80),
@@ -162,8 +162,8 @@ function print80mm(r: Reservation, t: any) {
     r.folio!.payments.forEach(p => {
       const methodLabel = (PAYMENT_LABELS as any)[p.method] ?? p.method;
       if (p.method === "card") {
-        const fee      = getCardFee(p.amount);
-        const cardTot  = getCardTotal(p.amount);
+        const fee = getCardFee(p.amount);
+        const cardTot = getCardTotal(p.amount);
         lines.push(padL(`${methodLabel} (${t('reservations.collected')})`, `${fmtAr(p.amount)} Ar`, W80));
         lines.push(padL(`+ ${t('reservations.bankFee')} 5% (${t('reservations.info')})`, `${fmtAr(fee)} Ar`, W80));
         lines.push(padL(`= ${t('reservations.cardTotal')}`, `${fmtAr(cardTot)} Ar`, W80));
@@ -198,11 +198,11 @@ function print80mm(r: Reservation, t: any) {
 // ── Facture A4 ────────────────────────────────────────────────────────────────
 function printA4(r: Reservation, t: any) {
   const win = window.open("", "_blank"); if (!win) return;
-  const n         = countNights(r.checkIn, r.checkOut);
-  const total     = r.folio?.total ?? r.rate * n;
-  const paid      = (r.folio?.payments ?? []).reduce((s, p) => s + p.amount, 0);
-  const balance   = Math.max(0, total - paid);
-  const unit      = unitLabel(r.rateMode, t);
+  const n = countNights(r.checkIn, r.checkOut);
+  const total = r.folio?.total ?? r.rate * n;
+  const paid = (r.folio?.payments ?? []).reduce((s, p) => s + p.amount, 0);
+  const balance = Math.max(0, total - paid);
+  const unit = unitLabel(r.rateMode, t);
   const unitShort = r.rateMode === "per_stay" ? t('reservations.perStayLower') : t('reservations.perNightLower');
 
   const chargeRow = `<tr>
@@ -215,7 +215,7 @@ function printA4(r: Reservation, t: any) {
   const payRows = (r.folio?.payments ?? []).map(p => {
     const methodLabel = (PAYMENT_LABELS as any)[p.method] ?? p.method;
     if (p.method === "card") {
-      const fee     = getCardFee(p.amount);
+      const fee = getCardFee(p.amount);
       const cardTot = getCardTotal(p.amount);
       return `
         <tr>
@@ -408,8 +408,8 @@ const STATUS_FR: Record<string, string> = {
 // ── CardFeeBanner ─────────────────────────────────────────────────────────────
 
 function CardFeeBanner({ amount, t }: { amount: number; t: any }) {
-  const fee      = getCardFee(amount);
-  const cardTot  = getCardTotal(amount);
+  const fee = getCardFee(amount);
+  const cardTot = getCardTotal(amount);
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-xs space-y-1.5">
       <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400">
@@ -443,32 +443,32 @@ function CardFeeBanner({ amount, t }: { amount: number; t: any }) {
 // ── FolioPanel ────────────────────────────────────────────────────────────────
 
 function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; onUpdate: () => void; t: any }) {
-  const [method,   setMethod]   = useState<PaymentMethod>("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [received, setReceived] = useState("");
   const folio = reservation.folio;
 
-  const balance    = folio?.balance ?? 0;
-  const recNum     = parseInt(received) || 0;
+  const balance = folio?.balance ?? 0;
+  const recNum = parseInt(received) || 0;
 
-  const encaisse   = method === "cash"   ? Math.min(recNum, balance) : 0;
-  const change     = method === "cash"   ? Math.max(0, recNum - balance) : 0;
-  const cardAmt    = method === "card"   ? recNum : 0;
-  const cardFeePreview   = method === "card" ? getCardFee(cardAmt) : 0;
+  const encaisse = method === "cash" ? Math.min(recNum, balance) : 0;
+  const change = method === "cash" ? Math.max(0, recNum - balance) : 0;
+  const cardAmt = method === "card" ? recNum : 0;
+  const cardFeePreview = method === "card" ? getCardFee(cardAmt) : 0;
   const cardTotalPreview = method === "card" ? getCardTotal(cardAmt) : 0;
-  const otherAmt   = method !== "cash" && method !== "card" ? Math.min(recNum, balance) : 0;
+  const otherAmt = method !== "cash" && method !== "card" ? Math.min(recNum, balance) : 0;
 
   const amountToPost =
     method === "cash" ? encaisse :
-    method === "card" ? cardAmt  :
-    otherAmt;
+      method === "card" ? cardAmt :
+        otherAmt;
 
   const remainingAfter = Math.max(0, balance - amountToPost);
 
   const pay = useMutation({
     mutationFn: () => api.post("/cash/payments", {
-      department:     "hotel",
+      department: "hotel",
       method,
-      amount:         amountToPost,
+      amount: amountToPost,
       ...(method === "cash" && recNum ? { receivedAmount: recNum } : {}),
       folioId: folio!.id,
     }),
@@ -489,7 +489,7 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
   const totalPaid = (folio?.payments ?? []).reduce((s, p) => s + p.amount, 0);
 
   const isCashInsufficient = method === "cash" && recNum > 0 && recNum < balance;
-  const isCardOver         = method === "card"  && cardAmt > balance;
+  const isCardOver = method === "card" && cardAmt > balance;
   const canPay =
     amountToPost > 0 &&
     !folio?.closedAt &&
@@ -504,8 +504,8 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
 
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: t('reservations.totalInvoiced'),  value: folio.total,  cls: "text-foreground",           Icon: CircleDollarSign },
-          { label: t('reservations.alreadyCollected'), value: totalPaid,    cls: "text-emerald-600 dark:text-emerald-400", Icon: ArrowDownLeft },
+          { label: t('reservations.totalInvoiced'), value: folio.total, cls: "text-foreground", Icon: CircleDollarSign },
+          { label: t('reservations.alreadyCollected'), value: totalPaid, cls: "text-emerald-600 dark:text-emerald-400", Icon: ArrowDownLeft },
           {
             label: balance > 0 ? t('reservations.remainingDue') : t('reservations.balance'),
             value: balance,
@@ -531,16 +531,15 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
               const methodLabel = PAYMENT_LABELS[p.method as PaymentMethod] ?? p.method;
               const isCard = p.method === "card";
               const isCash = p.method === "cash";
-              const fee        = isCard ? getCardFee(p.amount) : 0;
-              const cardTot    = isCard ? getCardTotal(p.amount) : 0;
+              const fee = isCard ? getCardFee(p.amount) : 0;
+              const cardTot = isCard ? getCardTotal(p.amount) : 0;
               const cashChange = isCash && p.receivedAmount && p.receivedAmount > p.amount
                 ? p.receivedAmount - p.amount : 0;
 
               return (
-                <div key={p.id} className={`rounded-lg border p-2.5 text-sm space-y-1.5 ${
-                  isCard ? "border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20"
-                         : "border-border bg-muted/30"
-                }`}>
+                <div key={p.id} className={`rounded-lg border p-2.5 text-sm space-y-1.5 ${isCard ? "border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20"
+                    : "border-border bg-muted/30"
+                  }`}>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-1.5">
                       {isCard
@@ -617,8 +616,8 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {method === "cash" ? t('reservations.amountReceivedFromCustomer') :
-               method === "card" ? t('reservations.amountToCollect') :
-               t('reservations.amountReceived')}
+                method === "card" ? t('reservations.amountToCollect') :
+                  t('reservations.amountReceived')}
             </label>
             <div className="relative">
               <Input
@@ -627,8 +626,8 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
                 max={method === "card" ? balance : undefined}
                 placeholder={
                   method === "cash" ? `${t('reservations.example')} : ${fmtMGA(balance)} MGA ${t('reservations.orMore')}` :
-                  method === "card" ? `${t('reservations.max')} ${fmtMGA(balance)} MGA` :
-                  `${t('reservations.amount')} (${t('reservations.max')} ${fmtMGA(balance)} MGA)`
+                    method === "card" ? `${t('reservations.max')} ${fmtMGA(balance)} MGA` :
+                      `${t('reservations.amount')} (${t('reservations.max')} ${fmtMGA(balance)} MGA)`
                 }
                 value={received}
                 onChange={e => setReceived(e.target.value)}
@@ -699,11 +698,10 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
                 </>
               )}
 
-              <div className={`flex justify-between font-semibold border-t border-border pt-1.5 ${
-                remainingAfter > 0
+              <div className={`flex justify-between font-semibold border-t border-border pt-1.5 ${remainingAfter > 0
                   ? "text-amber-600 dark:text-amber-400"
                   : "text-emerald-600 dark:text-emerald-400"
-              }`}>
+                }`}>
                 <span>{t('reservations.remainingBalanceAfterPayment')}</span>
                 <span className="tabular-nums">{fmtMGA(remainingAfter)} MGA</span>
               </div>
@@ -716,7 +714,10 @@ function FolioPanel({ reservation, onUpdate, t }: { reservation: Reservation; on
 
           {isCashInsufficient && (
             <p className="text-xs text-red-500">
-              {t('reservations.insufficientAmount', { received: fmtMGA(recNum), balance: fmtMGA(balance) })}
+              {t('reservations.insufficientAmount', {
+                received: fmtMGA(recNum),
+                balance: fmtMGA(balance),
+              })}
             </p>
           )}
           {isCardOver && (
@@ -760,13 +761,13 @@ const Reservations = () => {
     staleTime: 30_000,
   });
 
-  const [searchTerm,    setSearchTerm]    = useState("");
-  const [filterStatus,  setFilterStatus]  = useState<ReservationStatus | "all">("all");
-  const [showNew,       setShowNew]       = useState(false);
-  const [detailsId,     setDetailsId]     = useState<number | null>(null);
-  const [cancelTarget,  setCancelTarget]  = useState<Reservation | null>(null);
-  const [deleteTarget,  setDeleteTarget]  = useState<Reservation | null>(null);
-  const [exportOpen,    setExportOpen]    = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<ReservationStatus | "all">("all");
+  const [showNew, setShowNew] = useState(false);
+  const [detailsId, setDetailsId] = useState<number | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
   const EMPTY_FORM = {
@@ -791,7 +792,7 @@ const Reservations = () => {
 
   const stats = useMemo(() => {
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
     return {
       total: reservations.length,
       booked: reservations.filter(r => r.status === "booked").length,
@@ -831,10 +832,10 @@ const Reservations = () => {
           phone: form.phone.trim() || undefined,
           notes: form.notes.trim() || undefined,
         },
-        checkIn:  new Date(form.checkIn).toISOString(),
+        checkIn: new Date(form.checkIn).toISOString(),
         checkOut: new Date(form.checkOut).toISOString(),
-        status:   "booked",
-        rate:     parseInt(form.rate),
+        status: "booked",
+        rate: parseInt(form.rate),
         rateMode: form.rateMode,
       }),
     onSuccess: () => {
@@ -853,7 +854,7 @@ const Reservations = () => {
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => {
-      if (status === "checked_in")  return api.post(`/hotelrooms/reservations/${id}/checkin`);
+      if (status === "checked_in") return api.post(`/hotelrooms/reservations/${id}/checkin`);
       if (status === "checked_out") return api.post(`/hotelrooms/reservations/${id}/checkout`);
       return api.patch(`/hotelrooms/reservations/${id}`, { status });
     },
@@ -916,9 +917,9 @@ const Reservations = () => {
     try {
       const dateStr = new Date().toISOString().slice(0, 10);
       const rows = filtered.map(r => {
-        const n     = countNights(r.checkIn, r.checkOut);
+        const n = countNights(r.checkIn, r.checkOut);
         const total = r.folio?.total ?? r.rate * n;
-        const unit  = r.rateMode === "per_stay" ? t('reservations.perStayLower') : t('reservations.perNightLower');
+        const unit = r.rateMode === "per_stay" ? t('reservations.perStayLower') : t('reservations.perNightLower');
         const statusLabels: Record<ReservationStatus, string> = {
           booked: t('reservations.statusBooked'),
           checked_in: t('reservations.statusCheckedIn'),
@@ -981,7 +982,7 @@ const Reservations = () => {
         );
       } else if (fmt_ === "csv") {
         const header = Object.keys(rows[0]).join(",");
-        const body   = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const body = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
         saveAs(new Blob(["\uFEFF" + header + "\n" + body], { type: "text/csv;charset=utf-8" }), `reservations-${dateStr}.csv`);
       } else if (fmt_ === "json") {
         saveAs(
@@ -1032,10 +1033,10 @@ const Reservations = () => {
                     <div className="absolute right-0 top-full mt-1 w-52 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
                       <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 pt-2.5 pb-1.5">{t('export.formats')}</p>
                       {[
-                        { f: "excel", label: t('export.excel'),  ext: ".xlsx", Icon: FileSpreadsheet, c: "text-emerald-600" },
-                        { f: "csv",   label: t('export.csv'),    ext: ".csv",  Icon: TableIcon,       c: "text-blue-600"    },
-                        { f: "json",  label: t('export.json'),   ext: ".json", Icon: FileCode,        c: "text-orange-600"  },
-                        { f: "txt",   label: t('export.txt'),   ext: ".txt",  Icon: FileText,        c: "text-violet-600"  },
+                        { f: "excel", label: t('export.excel'), ext: ".xlsx", Icon: FileSpreadsheet, c: "text-emerald-600" },
+                        { f: "csv", label: t('export.csv'), ext: ".csv", Icon: TableIcon, c: "text-blue-600" },
+                        { f: "json", label: t('export.json'), ext: ".json", Icon: FileCode, c: "text-orange-600" },
+                        { f: "txt", label: t('export.txt'), ext: ".txt", Icon: FileText, c: "text-violet-600" },
                       ].map(({ f, label, ext, Icon, c }) => (
                         <button key={f}
                           className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-muted transition-colors"
@@ -1061,11 +1062,11 @@ const Reservations = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
-              { label: t('reservations.total'),         value: stats.total,           color: "text-foreground"    },
-              { label: t('reservations.statusBooked'),    value: stats.booked,          color: "text-violet-500"    },
-              { label: t('reservations.statusCheckedIn'),     value: stats.checked_in,      color: "text-blue-500"      },
-              { label: t('reservations.arrivalsToday'), value: stats.arrivalsToday,   color: "text-emerald-500"   },
-              { label: t('reservations.departuresToday'),  value: stats.departuresToday, color: "text-amber-500"     },
+              { label: t('reservations.total'), value: stats.total, color: "text-foreground" },
+              { label: t('reservations.statusBooked'), value: stats.booked, color: "text-violet-500" },
+              { label: t('reservations.statusCheckedIn'), value: stats.checked_in, color: "text-blue-500" },
+              { label: t('reservations.arrivalsToday'), value: stats.arrivalsToday, color: "text-emerald-500" },
+              { label: t('reservations.departuresToday'), value: stats.departuresToday, color: "text-amber-500" },
             ].map(s => (
               <Card key={s.label}>
                 <div className="px-4 py-3">
@@ -1130,7 +1131,7 @@ const Reservations = () => {
           ) : (
             <div className="space-y-3">
               {filtered.map(r => {
-                const n            = countNights(r.checkIn, r.checkOut);
+                const n = countNights(r.checkIn, r.checkOut);
                 const displayBalance = r.folio?.balance ?? r.rate * n;
                 const statusLabels: Record<ReservationStatus, string> = {
                   booked: t('reservations.statusBooked'),
@@ -1340,7 +1341,7 @@ const Reservations = () => {
                     className={`flex-1 px-3 py-1.5 transition-colors ${form.rateMode === mode
                       ? "bg-primary text-primary-foreground font-medium"
                       : "bg-transparent text-muted-foreground hover:bg-muted"
-                    }`}
+                      }`}
                     onClick={() => setF("rateMode", mode)}>
                     {mode === "per_night" ? t('reservations.perNight') : t('reservations.perStay')}
                   </button>

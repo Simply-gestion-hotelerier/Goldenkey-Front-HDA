@@ -705,8 +705,8 @@
     "collectedAmount": "Collected amount",
     "changeToGive": "Change to give",
     "remainingBalanceAfterPayment": "Remaining balance after payment",
-    "insufficientAmount": "The received amount ({received} MGA) is insufficient to cover the remaining due ({balance} MGA).",
-    "amountExceedsBalance": "The amount ({amount} MGA) exceeds the remaining balance ({balance} MGA).",
+    "insufficientAmount": "The received amount ({{received}} MGA) is insufficient to cover the remaining due ({{balance}} MGA).",
+    "amountExceedsBalance": "The amount ({{amount}} MGA) exceeds the remaining balance ({{balance}} MGA).",
     "collect": "Collect",
     "reservationsReport": "RESERVATIONS REPORT",
     "totalFiltered": "Total (filtered)",
@@ -725,6 +725,7 @@
   },
   "restaurant": {
     "subtitle": "Orders • Kitchen • Inventory • Cash",
+    "menuManagement": "Menu of restaurant",
     "orderDeleted": "Order deleted",
     "orderClosed": "Order closed",
     "statusActive": "Active",
@@ -1104,7 +1105,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Account • Theme",
+    "subtitle": "Account • Theme • Users",
     "profile": "Profile",
     "appearance": "Appearance",
     "fullName": "Full name",

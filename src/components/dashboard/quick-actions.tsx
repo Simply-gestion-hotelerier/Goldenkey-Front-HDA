@@ -34,8 +34,8 @@ const quickActions = [
 
 
   {
-    title: "Facture Rapide",
-    description: "Génération facture",
+    title: "Facture Journalière",
+    description: "Génération facture journalière",
     icon: Receipt,
     action: "quick-invoice",
     variant: "default" as const

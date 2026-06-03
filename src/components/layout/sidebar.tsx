@@ -18,6 +18,7 @@ import {
   Receipt, FileText, Banknote, TrendingUp,
   // Stock
   Package,
+  UserCog,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, CSSProperties, useEffect } from "react";
@@ -117,9 +118,8 @@ export const getNavGroups = (t: (key: string) => string) => [
     label: t("nav.group.finance"),
     colorKey: "finance",
     items: [
-      { name: t("nav.clientInvoice"), href: "/invoices/client", icon: Receipt    },
+      // { name: t("nav.clientInvoice"), href: "/invoices/client", icon: Receipt    },
       { name: t("nav.dailyInvoice"),  href: "/invoices/daily",  icon: FileText   },
-    /* { name: t("nav.cash"),          href: "/cash",            icon: Banknote   },*/
       { name: t("nav.reports"),       href: "/reports",         icon: TrendingUp },
     ],
   },
@@ -155,30 +155,31 @@ const roleAccess: Record<Role, string[]> = {
     "/notifications", "/settings", "/room-inspection",
   ],
   reception: [
-    "/", "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm",
-    "/hotel/pos",
-    "/restaurant", "/restaurant/pos", "/restaurant/menu", 
+    "/hotelrooms", "/hotelrooms/plan", "/rooms/manage", "/reservations", "/crm",
     "/invoices/client",
     "/notifications", "/settings",
   ],
   serveur: [
-    "/", "/restaurant", "/restaurant/pos", "/restaurant/menu",
+    "/hotel", "/hotel/pos", "/hotel/menu",
+    "/restaurant", "/restaurant/pos", "/restaurant/menu",
+    "/bar", "/bar/pos", "/bar/menu",
+    "/casino", "/casino/pos", "/casino/menu",
     "/notifications", "/settings",
   ],
   bar: [
-    "/", "/bar", "/bar/pos", "/bar/menu",
+    "/bar", "/bar/pos", "/bar/menu",
     "/notifications", "/settings",
   ],
   cuisine: [
-    "/", "/restaurant", 
+    "/restaurant", 
     "/notifications", "/settings",
   ],
   compta: [
-    "/", "/invoices/client", "/invoices/daily", "/cash", "/reports",
+    "/invoices/client", "/invoices/daily", "/cash", "/reports",
     "/notifications", "/settings",
   ],
   housekeeping: [
-    "/", "/housekeeping", "/room-inspection",
+    "/housekeeping", "/room-inspection",
     "/notifications", "/settings",
   ],
 };

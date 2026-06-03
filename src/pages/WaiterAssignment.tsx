@@ -9,6 +9,7 @@ import { User, UserPlus, UserMinus, Users, CheckCircle2, XCircle, AlertCircle } 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Waiter {
   id: number;
@@ -35,19 +36,16 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
   const [selectedWaiterId, setSelectedWaiterId] = useState<string>("");
   const queryClient = useQueryClient();
 
-  // Récupérer la liste des serveurs disponibles
-  const { data: waiters = [], refetch: refetchWaiters } = useQuery({
+  const { data: waiters = [] } = useQuery({
     queryKey: ["restaurant", "waiters", "available"],
     queryFn: () => api.get<Waiter[]>("/restaurant/waiters"),
   });
 
-  // Récupérer les serveurs non assignés
   const { data: unassignedWaiters = [] } = useQuery({
     queryKey: ["restaurant", "waiters", "unassigned"],
     queryFn: () => api.get<Waiter[]>("/restaurant/waiters/unassigned"),
   });
 
-  // Mutation pour assigner un serveur
   const assignWaiter = useMutation({
     mutationFn: ({ tableId, waiterId }: { tableId: number; waiterId: number | null }) =>
       api.patch(`/restaurant/tables/${tableId}/assign`, { waiterId }),
@@ -90,10 +88,9 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
     setAssignmentDialogOpen(true);
   };
 
-  // Statistiques
-  const assignedTables = tables.filter(t => t.assignedWaiter);
+  const assignedTables   = tables.filter(t => t.assignedWaiter);
   const unassignedTables = tables.filter(t => !t.assignedWaiter);
-  const uniqueWaiters = new Set(assignedTables.map(t => t.assignedWaiter?.id)).size;
+  const uniqueWaiters    = new Set(assignedTables.map(t => t.assignedWaiter?.id)).size;
 
   return (
     <>
@@ -109,36 +106,43 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
             </Badge>
           </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          {/* Résumé */}
+
+          {/* ── Résumé ── */}
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-blue-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-blue-600">{waiters.length}</div>
+            <div className="rounded-lg p-3 text-center bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{waiters.length}</div>
               <div className="text-xs text-muted-foreground">Serveurs</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-green-600">{uniqueWaiters}</div>
+            <div className="rounded-lg p-3 text-center bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-900">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{uniqueWaiters}</div>
               <div className="text-xs text-muted-foreground">Serveurs actifs</div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-orange-600">{unassignedWaiters.length}</div>
+            <div className="rounded-lg p-3 text-center bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{unassignedWaiters.length}</div>
               <div className="text-xs text-muted-foreground">Non assignés</div>
             </div>
           </div>
 
-          {/* Tables assignées */}
+          {/* ── Tables assignées ── */}
           {assignedTables.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                 Tables assignées
               </h4>
               <div className="space-y-2">
                 {assignedTables.map(table => (
-                  <div key={table.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div
+                    key={table.id}
+                    className="flex items-center justify-between p-3 rounded-lg
+                      bg-green-50 dark:bg-green-950/30
+                      border border-green-200 dark:border-green-800"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="font-medium">{table.code}</div>
-                      <div className="flex items-center gap-1 text-sm text-green-700">
+                      <div className="font-medium text-foreground">{table.code}</div>
+                      <div className="flex items-center gap-1 text-sm text-green-700 dark:text-green-400">
                         <User className="h-3 w-3" />
                         <span>{table.assignedWaiter?.name}</span>
                         <Badge variant="outline" className="text-xs ml-1">
@@ -152,7 +156,7 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
                         Changer
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => handleUnassign(table)}>
-                        <UserMinus className="h-3 w-3 text-red-600" />
+                        <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
                       </Button>
                     </div>
                   </div>
@@ -161,17 +165,22 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
             </div>
           )}
 
-          {/* Tables non assignées */}
+          {/* ── Tables non assignées ── */}
           {unassignedTables.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 Tables non assignées
               </h4>
               <div className="space-y-2">
                 {unassignedTables.map(table => (
-                  <div key={table.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <div className="font-medium">{table.code}</div>
+                  <div
+                    key={table.id}
+                    className="flex items-center justify-between p-3 rounded-lg
+                      bg-orange-50 dark:bg-orange-950/30
+                      border border-orange-200 dark:border-orange-800"
+                  >
+                    <div className="font-medium text-foreground">{table.code}</div>
                     <Button size="sm" onClick={() => openAssignmentDialog(table)}>
                       <UserPlus className="h-3 w-3 mr-1" />
                       Assigner un serveur
@@ -190,13 +199,13 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
         </CardContent>
       </Card>
 
-      {/* Dialogue d'assignation */}
+      {/* ── Dialogue d'assignation ── */}
       <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Assigner un serveur</DialogTitle>
             <DialogDescription>
-              Table {selectedTable?.code} - Choisissez un serveur
+              Table {selectedTable?.code} — Choisissez un serveur
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -218,13 +227,13 @@ export function WaiterAssignment({ tables, onAssignmentChange }: WaiterAssignmen
                 ))}
               </SelectContent>
             </Select>
-            
+
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAssignmentDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button onClick={handleAssign} disabled={!selectedWaiterId}>
-                Assigner
+              <Button onClick={handleAssign} disabled={!selectedWaiterId || assignWaiter.isPending}>
+                {assignWaiter.isPending ? "..." : "Assigner"}
               </Button>
             </div>
           </div>

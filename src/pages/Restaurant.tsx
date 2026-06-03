@@ -52,7 +52,7 @@ const Restaurant = () => {
     queryKey: ["restaurant","tables"], 
     queryFn: () => api.get<any[]>("/restaurant/tables") 
   });
-
+  
   const reportsToday = useQuery({ 
     queryKey: ["reports","daily","restaurant"], 
     queryFn: () => api.get<any>(`/reports/daily?dept=restaurant&date=${new Date().toISOString().slice(0,10)}`), 
@@ -416,15 +416,13 @@ ${t('restaurant.reportGenerated')}
                   <ClipboardList className="mr-2 h-4 w-4" />
                   {t('restaurant.newOrder')}
                 </Button>
-          
-          
+                <Button className="w-full justify-start" variant="outline" onClick={()=>navigate('/restaurant/menu')}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  {t('restaurant.menuManagement')}
+                </Button>        
                 <Button className="w-full justify-start" variant="outline" onClick={()=>navigate('/inventory')}>
                   <Package className="mr-2 h-4 w-4" />
                   {t('restaurant.inventory')}
-                </Button>
-                <Button className="w-full justify-start" variant="outline" onClick={()=>navigate('/cash')}>
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  {t('restaurant.cashRegister')}
                 </Button>
               </CardContent>
             </Card>

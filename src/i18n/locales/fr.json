@@ -1,5 +1,5 @@
 {
-  "common": {    
+  "common": {
     "active": "Active",
     "save": "Enregistrer",
     "cancel": "Annuler",
@@ -83,7 +83,7 @@
     "deleteError": "Erreur de suppression",
     "refreshing": "Actualisation...",
     "price": "Prix",
-    "capacity": "Capacité",    
+    "capacity": "Capacité",
     "optional": "Optionnel"
   },
   "nav": {
@@ -355,6 +355,7 @@
     "maintenanceCreated": "Maintenance créée",
     "maintenanceDeleted": "Maintenance supprimée",
     "rooms": "Chambres",
+    "maintenance": "Maintenance",
     "maintenances": "Maintenances",
     "roomsExported": "chambres exportées",
     "roomsCount": "chambres",
@@ -585,8 +586,8 @@
     "collectedAmount": "Montant collecté",
     "changeToGive": "Monnaie à rendre",
     "remainingBalanceAfterPayment": "Solde restant après paiement",
-    "insufficientAmount": "Le montant reçu ({received} MGA) est insuffisant pour couvrir le reste dû ({balance} MGA).",
-    "amountExceedsBalance": "Le montant ({amount} MGA) dépasse le solde restant ({balance} MGA).",
+    "insufficientAmount": "Le montant reçu ({{received}} MGA) est insuffisant pour couvrir le reste dû ({{balance}} MGA).",
+    "amountExceedsBalance": "Le montant ({{amount}} MGA) dépasse le solde restant ({{balance}} MGA).",
     "collect": "Collecter",
     "reservationsReport": "RAPPORT DES RÉSERVATIONS",
     "totalFiltered": "Total (filtré)",
@@ -691,11 +692,12 @@
     "hotel_services": "Services Hôtel",
     "lounge": "Lounge / Bar",
     "casino": "Casino",
-    "total" : "Total"
+    "total": "Total"
   },
-  "restaurant": {    
+  "restaurant": {
     "category": "Catégorie",
     "subtitle": "Commandes • Cuisine • Inventaire • Caisse",
+    "menuManagement": "Carte du restaurant",
     "hotelName": "Hôtel de l'Avenue  -  Nail Bar",
     "table": "Table",
     "order": "Commande",
@@ -824,7 +826,7 @@
     "exportSuccess": "Export réussi"
   },
   "crm": {
-    "title": "CRM & Relations Clients",    
+    "title": "CRM & Relations Clients",
     "subtitle": "Base clients • Séjours • Communications",
     "totalCustomers": "Total clients",
     "totalVisits": "Total séjours",
@@ -893,6 +895,8 @@
   },
   "dashboard": {
     "title": "Hôtel de l'Avenue",
+    "casinoTables" : "Tables de casino",    
+    "roomServiceActive" : "Hotel & Room Service",
     "subtitle": "Plateforme de gestion complète",
     "overview": "Vue d'ensemble en temps réel",
     "presentGuests": "Clients présents",
@@ -917,7 +921,7 @@
   },
   "settings": {
     "title": "Paramètres",
-    "subtitle": "Compte • Thème",
+    "subtitle": "Compte • Thème • Utilisateurs",
     "profile": "Profil",
     "appearance": "Apparence",
     "fullName": "Nom complet",
@@ -1226,5 +1230,37 @@
     "including": "dont",
     "unpaidOrders": "de commandes impayées",
     "settledMessage": "Compte soldé — Merci pour votre séjour !"
+  },
+  "team": {
+    "title": "Gestion des utilisateurs",
+    "subtitle": "Gérer les comptes utilisateurs",
+    "newAccount": "Nouveau compte",
+    "createUser": "Créer un utilisateur",
+    "password": "Mot de passe",
+    "passwordMinLength": "Min. 4 caractères",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Jean Dupont",
+    "role": "Rôle",
+    "selectRole": "Sélectionner un rôle",
+    "create": "Créer",
+    "createError": "Erreur de création",
+    "updateError": "Erreur de mise à jour",
+    "requiredFields": "L'email, le mot de passe et le rôle sont obligatoires",
+    "newPassword": "Nouveau mot de passe (optionnel)",
+    "passwordOptional": "Laisser vide = inchangé",
+    "createdOn": "Créé le",
+    "noUsers": "Aucun utilisateur",
+    "deleteConfirmTitle": "Supprimer ce compte ?",
+    "deleteConfirmDescription": "Vous êtes sur le point de supprimer",
+    "deleteConfirmWarning": "Cette action est irréversible.",
+    "roles": {
+      "admin": "Administrateur",
+      "manager": "Responsable",
+      "reception": "Réception",
+      "housekeeping": "Housekeeping",
+      "waiter": "Serveur",
+      "kitchen": "Cuisine",
+      "cashier": "Caisse"
+    }
   }
 }

@@ -1,6 +1,7 @@
 // ============================================================
-// RESTAURANT POS - VERSION CORRIGÉE (comme CasinoPOS)
-// Numéro de facture fixe + bouton MOINS + paiements partiels
+// RESTAURANT POS - VERSION CORRIGÉE
+// Corrections : CardFeesInfoBanner template literals, typo "dddd",
+//               monnaie/carte guards, receivedAmount carte
 // ============================================================
 
 import { Header } from "@/components/layout/header";
@@ -27,7 +28,6 @@ import { WaiterAssignment } from "./WaiterAssignment";
 
 // ── Helpers numbers ────────────────────────────────────────────────────────────
 
-// Génère un numéro de facture unique (comme CasinoPOS)
 const generateInvoiceNumber = (orderId?: number) => {
   if (orderId) {
     const saved = localStorage.getItem(`restaurant_invoice_${orderId}`);
@@ -134,7 +134,7 @@ function operatorLabel(p: any): string | null {
   return p?.operator?.name ?? p?.operator?.email ?? p?.operatorName ?? null;
 }
 
-// ── ORDER CALCULATIONS ───────────────────────────────────────────────────────────
+// ── ORDER CALCULATIONS ────────────────────────────────────────────────────────
 
 const orderSubtotal = (o: any): number =>
   (o.lines ?? []).reduce((s: number, l: any) => s + l.unitPrice * l.qty, 0);
@@ -297,7 +297,7 @@ function printA4(tableCode: string, order: any) {
   const rows = (order.lines ?? [])
     .map(
       (l: any) => `
-    </table>
+       <tr>
        <td style="padding:8px;">
          <strong>${l.itemName ?? ""}</strong>
          ${l.comment ? `<br/><small style="color:#6b7280;font-style:italic">↳ ${l.comment}</small>` : ""}
@@ -323,13 +323,13 @@ function printA4(tableCode: string, order: any) {
             <br/><small style="color:#dc2626">+ Frais bancaires (5%) : <strong>+${fmt(pFees)} Ar</strong> <em>(retenus par la banque)</em></small>
             <br/><small style="color:#1d4ed8;font-weight:700">→ Total débité de votre carte : ${fmt(p.amount + pFees)} Ar</small>
           ` : ""}
-        ${p.receivedAmount && p.receivedAmount > p.amount
+        ${p.receivedAmount && p.receivedAmount > p.amount && p.method !== "card"
           ? `<br/><small style="color:#6b7280">Reçu : ${fmt(p.receivedAmount)} Ar &nbsp;|&nbsp; Monnaie rendue : ${fmt(change)} Ar</small>`
           : ""}
         ${op ? `<br/><small style="color:#7c3aed;font-weight:600">👤 Opérateur : ${op}</small>` : ""}
         </td>
       <td style="text-align:right;padding:8px;color:#059669;font-weight:600">-${fmt(p.amount)} Ar</td>
-     </tr>`
+     </tr>`;
     })
     .join("");
 
@@ -365,7 +365,7 @@ function printA4(tableCode: string, order: any) {
           </tr>
         </table>
         <p style="margin-top:8px;font-size:10px;color:#6b7280;font-style:italic;">
-          * L'établissement ne collecte que votre montant consommé (${fmt(cardAmount)} Ar). 
+          * L'établissement ne collecte que ${fmt(cardAmount)} Ar. 
           Les ${fmt(bankFees)} Ar de frais sont directement retenus par votre banque.
         </p>
       </div>`
@@ -465,12 +465,12 @@ function printA4(tableCode: string, order: any) {
     </table>
 
     <div class="balance" style="background:${balance > 0 ? "#fee2e2" : credit > 0 ? "#fef3c7" : "#d1fae5"};color:${balance > 0 ? "#991b1b" : credit > 0 ? "#92400e" : "#065f46"}">
-      ${balance > 0 
-        ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
-        : credit > 0 
-          ? `💰 CRÉDIT CLIENT : ${fmt(credit)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
-          : "✓ SOLDE PAYÉ"
-      }
+      ${balance > 0
+      ? `⚠️ RESTE À PAYER : ${fmt(balance)} Ar`
+      : credit > 0
+        ? `💰 CRÉDIT CLIENT : ${fmt(credit)} Ar<br/><span style="font-size:10px;font-weight:normal;">(à déduire sur la prochaine commande)</span>`
+        : "✓ SOLDE PAYÉ"
+    }
     </div>
 
     ${cardFeesSummaryBlock}
@@ -488,6 +488,7 @@ function printA4(tableCode: string, order: any) {
 }
 
 // ── CardFeesInfoBanner ────────────────────────────────────────────────────────
+// ✅ CORRECTION Bug 4 : template literals ${} dans JSX string remplacés par expressions JSX
 
 function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
   if (cardAmount <= 0) return null;
@@ -517,8 +518,13 @@ function CardFeesInfoBanner({ cardAmount }: { cardAmount: number }) {
           <div className="text-xs text-blue-600 mt-0.5">de la carte</div>
         </div>
       </div>
+      {/* ✅ CORRECTION : utilisation d'expressions JSX au lieu de template literals dans une string */}
       <p className="text-xs text-muted-foreground italic">
-        L'établissement ne collecte que ${fmt(cardAmount)} Ar. Les ${fmt(fees)} Ar de frais sont directement retenus par votre banque.
+        {"L'établissement ne collecte que "}
+        <span className="font-medium">{fmt(cardAmount)} Ar</span>
+        {". Les "}
+        <span className="font-medium text-red-600">{fmt(fees)} Ar</span>
+        {" de frais sont directement retenus par votre banque."}
       </p>
     </div>
   );
@@ -629,6 +635,12 @@ export default function RestaurantPOS() {
       setNewTableCode("");
       toast({ title: "Table créée" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de créer la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const editTableMut = useMutation({
@@ -639,6 +651,12 @@ export default function RestaurantPOS() {
       setEditingTable(null);
       toast({ title: "Table modifiée" });
     },
+    onError: (e: any) =>
+      toast({
+        title: "Impossible de modifier la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const removeTable = useMutation({
@@ -648,7 +666,11 @@ export default function RestaurantPOS() {
       toast({ title: "Table supprimée" });
     },
     onError: (e: any) =>
-      toast({ title: "Impossible de supprimer la table", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+      toast({
+        title: "Impossible de supprimer la table",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
 
   const createOrder = useMutation({
@@ -703,7 +725,6 @@ export default function RestaurantPOS() {
       toast({ title: "Erreur", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
   });
 
-  // Mutation pour diminuer la quantité (bouton MOINS)
   const decrementLine = useMutation({
     mutationFn: ({ orderId, lineId, currentQty }: { orderId: number; lineId: number; currentQty: number }) => {
       if (currentQty <= 1) {
@@ -738,28 +759,71 @@ export default function RestaurantPOS() {
       toast({ title: "Erreur de clôture", description: String(e), variant: "destructive" }),
   });
 
+  // ✅ CORRECTION Bug 2 : receivedAmount toujours transmis explicitement
   const payOrder = useMutation({
-    mutationFn: (p: { orderId: number; amount: number; method: string; receivedAmount?: number }) =>
+    mutationFn: (p: {
+      orderId: number;
+      amount: number;
+      method: string;
+      receivedAmount: number;
+    }) =>
       api.post("/cash/payments", {
         department: "restaurant",
         method: p.method,
         amount: p.amount,
-        receivedAmount: p.receivedAmount ?? null,
+        receivedAmount: p.receivedAmount,
         orderId: p.orderId,
       }),
     onSuccess: async (data: any, vars) => {
       const change = data?.context?.change ?? 0;
       toast({
         title: "Paiement enregistré",
-        description: change > 0 ? `Monnaie à rendre : ${fmt(change)} Ar` : "Paiement réussi",
+        description: change > 0
+          ? `Monnaie à rendre : ${fmt(change)} Ar`
+          : "Paiement réussi",
       });
       setReceivedAmount("");
       await refreshSelectedOrder(vars.orderId);
       qc.invalidateQueries({ queryKey: ["orders", "restaurant"] });
     },
     onError: (e: any) =>
-      toast({ title: "Erreur de paiement", description: e.response?.data?.error ?? String(e), variant: "destructive" }),
+      toast({
+        title: "Erreur de paiement",
+        description: e.response?.data?.error ?? String(e),
+        variant: "destructive",
+      }),
   });
+
+  // ✅ CORRECTION Bug 1 & 2 : handlePay corrigé
+  const handlePay = () => {
+    const amountReceived = Number(receivedAmount);
+    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
+
+    if (!amountReceived || amountReceived <= 0) {
+      toast({
+        title: "Montant de paiement invalide",
+        description: "Veuillez entrer un montant valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Carte  : on encaisse exactement le montant saisi (pas de monnaie, frais gérés par la banque)
+    // Autres : on encaisse au maximum le solde dû
+    //          → si le client donne plus → amount = solde, change calculé côté backend
+    //          → si le client donne moins → paiement partiel, amount = reçu
+    const amountToPost =
+      payMethod === "card"
+        ? amountReceived
+        : Math.min(amountReceived, currentBalance);
+
+    payOrder.mutate({
+      orderId: selectedOrder.id,
+      amount: amountToPost,
+      method: payMethod,
+      receivedAmount: amountReceived, // ✅ toujours le montant physique reçu du client
+    });
+  };
 
   const applyDiscount = useMutation({
     mutationFn: (p: { orderId: number; discountAmount: number; discountType: string; discountReason: string }) =>
@@ -886,27 +950,6 @@ export default function RestaurantPOS() {
 
   const getPrepTime = (lines: any[]) =>
     lines ? lines.reduce((m, l) => Math.max(m, l.itempreparationTime ?? 0), 0) : 0;
-
-  // CORRECTION: handlePay modifié pour permettre les paiements partiels (comme CasinoPOS)
-  const handlePay = () => {
-    const amountToCollect = Number(receivedAmount);
-    const currentBalance = selectedOrder ? orderBalance(selectedOrder) : 0;
-
-    if (!amountToCollect || amountToCollect <= 0) {
-      toast({ title: "Montant de paiement invalide", description: "Veuillez entrer un montant valide", variant: "destructive" });
-      return;
-    }
-
-    // Pas de vérification si le montant est inférieur au solde
-    // On collecte exactement ce que le client donne
-    // La facture gérera l'affichage du reste à payer ou du crédit
-    payOrder.mutate({
-      orderId: selectedOrder.id,
-      amount: currentBalance,
-      method: payMethod,
-      receivedAmount: amountToCollect,
-    });
-  };
 
   const handleApplyDiscount = () => {
     if (discountInput === "" || Number(discountInput) < 0) {
@@ -1171,7 +1214,6 @@ export default function RestaurantPOS() {
                                           <div className="font-semibold whitespace-nowrap">{fmt(line.unitPrice * line.qty)} Ar</div>
                                           {order.status === "open" && (
                                             <div className="flex gap-1">
-                                              {/* Bouton MOINS */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1186,7 +1228,6 @@ export default function RestaurantPOS() {
                                               >
                                                 <Minus className="h-3.5 w-3.5" />
                                               </Button>
-                                              {/* Bouton PLUS */}
                                               <Button
                                                 size="sm"
                                                 variant="outline"
@@ -1270,9 +1311,7 @@ export default function RestaurantPOS() {
           {activeTab === "waiters" && (
             <WaiterAssignment
               tables={tables as any[]}
-              onAssignmentChange={() => {
-                refetchOrders();
-              }}
+              onAssignmentChange={() => { refetchOrders(); }}
             />
           )}
 
@@ -1369,7 +1408,7 @@ export default function RestaurantPOS() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Details / Payment / Discount - AVEC PAIEMENTS PARTIELS comme CasinoPOS */}
+      {/* Dialog Details / Payment / Discount */}
       <Dialog open={detailsOpen} onOpenChange={open => { if (!open) { setDetailsOpen(false); setSelectedOrder(null); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1387,6 +1426,12 @@ export default function RestaurantPOS() {
             const bal = orderBalance(selectedOrder);
             const orderNum = selectedOrder.orderNumber || formatOrderNumber(selectedOrder.id, selectedOrder.createdAt);
             const invoiceNum = selectedOrder.invoiceNumber || generateInvoiceNumber(selectedOrder.id);
+
+            // ✅ Monnaie calculée : montant reçu - solde AVANT paiement
+            const changePreview =
+              payMethod === "cash" && Number(receivedAmount) > bal
+                ? Number(receivedAmount) - bal
+                : 0;
 
             return (
               <div className="space-y-4">
@@ -1479,7 +1524,7 @@ export default function RestaurantPOS() {
                   </div>
                 </div>
 
-                {/* CARD FEE INFO on already made payments */}
+                {/* Card fees on existing payments */}
                 {currentCardFees.cardAmount > 0 && (
                   <CardFeesInfoBanner cardAmount={currentCardFees.cardAmount} />
                 )}
@@ -1587,7 +1632,10 @@ export default function RestaurantPOS() {
                     <div className="text-xs font-medium text-muted-foreground">Paiements enregistrés</div>
                     <div className="max-h-[150px] overflow-y-auto space-y-1">
                       {(selectedOrder.payments as any[]).map((p: any) => {
-                        const change = p.receivedAmount ? Math.max(0, p.receivedAmount - p.amount) : 0;
+                        // ✅ Monnaie affichée seulement pour les paiements non-carte
+                        const change = p.method !== "card" && p.receivedAmount
+                          ? Math.max(0, p.receivedAmount - p.amount)
+                          : 0;
                         const op = operatorLabel(p);
                         const pFees = p.method === "card" ? Math.round(p.amount * CARD_FEE_RATE) : 0;
                         return (
@@ -1615,7 +1663,8 @@ export default function RestaurantPOS() {
                                 </div>
                               </div>
                             )}
-                            {p.receivedAmount && p.receivedAmount > p.amount && !p.method.includes("card") && (
+                            {/* ✅ Monnaie uniquement pour paiements non-carte */}
+                            {p.method !== "card" && change > 0 && (
                               <div className="flex justify-between text-muted-foreground mt-0.5">
                                 <span>Reçu : {fmt(p.receivedAmount)} Ar</span>
                                 <span className="text-blue-600 font-medium">Monnaie : {fmt(change)} Ar</span>
@@ -1633,7 +1682,7 @@ export default function RestaurantPOS() {
                   </div>
                 )}
 
-                {/* PAYMENT COLLECTION - AVEC PAIEMENTS PARTIELS (comme CasinoPOS) */}
+                {/* PAYMENT COLLECTION */}
                 {selectedOrder.status === "open" && bal > 0 && (
                   <div className="space-y-3 border rounded p-3 bg-muted/10">
                     <div className="text-sm font-medium">Collecter le paiement</div>
@@ -1641,7 +1690,6 @@ export default function RestaurantPOS() {
                       Reste à payer : <span className="font-bold text-red-600">{fmt(bal)} Ar</span>
                     </div>
 
-                    {/* Montant reçu - champ libre sans minimum */}
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">Montant reçu du client (Ar)</label>
                       <Input
@@ -1677,33 +1725,36 @@ export default function RestaurantPOS() {
 
                     {receivedAmount && Number(receivedAmount) > 0 && (
                       <>
-                        {/* Message de paiement partiel */}
+                        {/* Paiement partiel */}
                         {Number(receivedAmount) < bal && (
                           <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-1.5">
-                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar. 
+                            ℹ️ Paiement partiel de {fmt(Number(receivedAmount))} Ar.
                             Il restera {fmt(bal - Number(receivedAmount))} Ar à payer.
                           </div>
                         )}
 
-                        {/* Message de monnaie pour les espèces */}
+                        {/* ✅ CORRECTION Bug 1 : Monnaie uniquement pour espèces, basée sur solde réel */}
                         {payMethod === "cash" && Number(receivedAmount) > bal && (
                           <div className="bg-blue-50 border border-blue-200 rounded p-3">
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-blue-700">Monnaie à rendre</span>
-                              <span className="font-bold text-blue-800 text-lg">{fmt(Number(receivedAmount) - bal)} Ar</span>
+                              <span className="font-bold text-blue-800 text-lg">{fmt(changePreview)} Ar</span>
+                            </div>
+                            <div className="text-xs text-blue-600 mt-1">
+                              Reçu : {fmt(Number(receivedAmount))} Ar — Solde dû : {fmt(bal)} Ar
                             </div>
                           </div>
                         )}
 
-                        {/* Message de crédit */}
-                        {Number(receivedAmount) > bal && (
+                        {/* ✅ CORRECTION Bug 3 : crédit seulement pour méthodes non-carte, et pas doublon avec monnaie espèces */}
+                        {payMethod !== "card" && payMethod !== "cash" && Number(receivedAmount) > bal && (
                           <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
                             ℹ️ Le montant reçu ({fmt(Number(receivedAmount))} Ar) dépasse le reste dû ({fmt(bal)} Ar).
                             Un crédit de {fmt(Number(receivedAmount) - bal)} Ar sera enregistré.
                           </div>
                         )}
 
-                        {/* Informations carte bancaire */}
+                        {/* Carte bancaire */}
                         {payMethod === "card" && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                             <div className="flex items-center gap-2 text-blue-800 font-medium text-xs">
@@ -1724,13 +1775,18 @@ export default function RestaurantPOS() {
                                 <span className="text-blue-800 font-bold">{fmt(Number(receivedAmount) + nextCardFeePreview)} Ar</span>
                               </div>
                             </div>
+                            {/* ✅ CORRECTION Bug 4 : expressions JSX au lieu de template literals dans string */}
                             <p className="text-xs text-muted-foreground italic">
-                              L'établissement collecte {fmt(Number(receivedAmount))} Ar. Les {fmt(nextCardFeePreview)} Ar de frais sont retenus par la banque.
+                              {"L'établissement collecte "}
+                              <span className="font-medium">{fmt(Number(receivedAmount))} Ar</span>
+                              {". Les "}
+                              <span className="font-medium text-red-600">{fmt(nextCardFeePreview)} Ar</span>
+                              {" de frais sont retenus par la banque."}
                             </p>
                           </div>
                         )}
 
-                        {/* Informations Mobile Money */}
+                        {/* Mobile Money */}
                         {payMethod === "mobile" && (
                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                             <div className="flex items-center gap-2 text-green-800 font-medium text-xs">
@@ -1742,7 +1798,7 @@ export default function RestaurantPOS() {
                           </div>
                         )}
 
-                        {/* Informations Virement */}
+                        {/* Virement */}
                         {payMethod === "bank" && (
                           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                             <div className="flex items-center gap-2 text-purple-800 font-medium text-xs">
@@ -1756,6 +1812,7 @@ export default function RestaurantPOS() {
                       </>
                     )}
 
+                    {/* ✅ CORRECTION Bug 3 : suppression du "dddd" dans le label du bouton */}
                     <Button
                       className="w-full"
                       onClick={handlePay}
