@@ -1673,11 +1673,18 @@ export default function CasinoPOS() {
                         return (
                           <div key={p.id} className={`text-xs rounded px-3 py-1.5 ${p.method === "card" ? "bg-blue-50 border border-blue-100" : "bg-green-50"}`}>
                             <div className="flex justify-between">
-                              <span className="flex items-center gap-1">
-                                {p.method === "card" && <CreditCard className="h-3 w-3 text-blue-600" />}
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                {p.method === "card" && (
+                                  <CreditCard className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                                )}
                                 {METHOD_LBL[p.method] ?? p.method} · {new Date(p.receivedAt).toLocaleDateString("fr-FR")}
                               </span>
-                              <span className={`font-semibold ${p.method === "card" ? "text-blue-700" : "text-green-700"}`}>{fmt(p.amount)} Ar</span>
+                              <span className={`font-semibold ${p.method === "card"
+                                  ? "text-blue-500 dark:text-blue-400"
+                                  : "text-green-500 dark:text-green-400"
+                                }`}>
+                                {fmt(p.amount)} Ar
+                              </span>
                             </div>
                             {p.method === "card" && (
                               <div className="mt-1 pt-1 border-t border-blue-100 space-y-0.5">
