@@ -113,9 +113,10 @@ function FireBadge({ status }: { status: string }) {
 // ── Restaurant info ───────────────────────────────────────────────────────────
 
 const CASINO = {
-  name: "Casino de l'Avenue",
+  name: "Hôtel de l'Avenue — Restaurant",
   address: "Antsirabe, Madagascar",
-  phone: "+261 038 33 188 31",
+  phone: " +261 34 20 310 30",
+  email: "contact@hdahotel.com"
 };
 
 const W = 42;
